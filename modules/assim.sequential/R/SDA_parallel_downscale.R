@@ -123,9 +123,15 @@ stack_covariates_2_geotiff <- function(outdir, year, base.map.dir, cov.tif.file.
                                 names(temp.rast) <- f$var.name
                               }
                               # raster operations.
-                              terra::crs(temp.rast) <- terra::crs(base.map)
-                              temp.rast <- terra::crop(temp.rast, base.map)
-                              temp.rast <- terra::resample(temp.rast, base.map)
+                              if (! terra::crs(base.map) == terra::crs(temp.rast)) {
+                                terra::crs(temp.rast) <- terra::crs(base.map)
+                              }
+                              if (! terra::ext(base.map) == terra::ext(temp.rast)) {
+                                temp.rast <- terra::crop(temp.rast, base.map)
+                              }
+                              if (! all(c(nrow(base.map) == nrow(temp.rast), ncol(base.map) == ncol(temp.rast)))) {
+                                temp.rast <- terra::resample(temp.rast, base.map)
+                              }
                               # write the raster into disk.
                               file.name <- paste0(f$var.name, collapse = "_")
                               path <- file.path(outdir, paste0(file.name, ".tiff"))
@@ -150,13 +156,17 @@ stack_covariates_2_geotiff <- function(outdir, year, base.map.dir, cov.tif.file.
 #' convert settings to geospatial points in terra.
 #' @title pecan_settings_2_pts
 #' 
-#' @param settings PEcAn settings: either a character that points to the settings or the actual settings object will be accepted.
+#' @param settings PEcAn settings: either a character that points to the settings or shape file or the actual pecan settings object will be accepted.
 #'
 #' @return terra spatial points object.
 #' 
 #' @author Dongchen Zhang
 pecan_settings_2_pts <- function(settings) {
   if (is.character(settings)) {
+    # if it's shapefile.
+    if (grepl(".shp", settings)) {
+      return(terra::vect(settings))
+    }
     # read settings.
     settings <- PEcAn.settings::read.settings(settings)
   }
@@ -205,6 +215,7 @@ stack_covariates_2_df <- function(rast.dir, cores = parallel::detectCores()) {
                              # if it's LC layer.
                              if ("LC" == names(all.rast)[r]) {
                                non.veg.inds <- which(! temp.vec %in% 1:8)
+                               # non.veg.inds <- which(! temp.vec %in% 0:11)
                                na.inds <- unique(c(na.inds, non.veg.inds))
                              }
                              return(list(vec = temp.vec,
@@ -253,6 +264,7 @@ prepare_train_dat <- function(pts, analysis, covariates.dir, variable) {
     as.data.frame() %>% `colnames<-`(paste0("ensemble", seq(nrow(analysis))))
   # combine carbon and predictor.
   full_data <- cbind(var.dat, predictors)
+  full_data <- full_data[which(full_data$LC %in% 1:8),]
   return(full_data)
 }
 
@@ -404,7 +416,7 @@ downscale_rf_main <- function(settings, analysis, covariates.dir, time, variable
   PEcAn.logger::logger.info("Converting geotiff to df.")
   cov.df <- stack_covariates_2_df(rast.dir = covariates.dir, cores = cores)
   # reconstruct LC because of the computation accuracy.
-  cov.df$df$LC[which(cov.df$df$LC < 1)] <- 0
+  # cov.df$df$LC[which(cov.df$df$LC < 1)] <- 0
   # convert LC into factor.
   if ("LC" %in% colnames(cov.df$df)) {
     cov.df$df[,"LC"] <- factor(cov.df$df[,"LC"])
@@ -416,7 +428,7 @@ downscale_rf_main <- function(settings, analysis, covariates.dir, time, variable
                                cov.vecs = cov.df$df, 
                                non.na.inds = cov.df$non.na.inds, 
                                outdir = folder.name, 
-                               name = list(time = time, variable = variable), 
+                               name = list(time = as.character(time), variable = variable), 
                                cores = cores)
   # calculate mean and std.
   PEcAn.logger::logger.info("Calculate mean and std.")
