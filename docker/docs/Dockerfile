@@ -37,6 +37,7 @@ COPY scripts/build_pkgdown.R /pkgdoc/scripts/build_pkgdown.R
 COPY base /pkgdoc/base/
 COPY modules /pkgdoc/modules/
 COPY models /pkgdoc/models/
+COPY package_documentation /pkgdoc/package_documentation
 RUN make clean && make pkgdocs
 
 # ----------------------------------------------------------------------
