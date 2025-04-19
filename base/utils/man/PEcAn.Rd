@@ -50,6 +50,15 @@ assimilation and forecasting system. This system will provide a detailed
 analysis of the past and present ecosystem functioning that seamlessly
 transitions into forecasts.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://pecanproject.github.io}
+  \item \url{https://github.com/PecanProject/pecan}
+  \item Report bugs at \url{https://github.com/PecanProject/pecan/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Rob Kooper \email{kooper@illinois.edu}
 
