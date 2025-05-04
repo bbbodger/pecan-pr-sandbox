@@ -35,21 +35,21 @@ setwd("/Users/chane/OneDrive/Documents/ef lab/R files")
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
 ```
 
-Getting soil carbon data from SDA forecast (copying Cami's code)
 
-Naming data frame with site number 
+Get soil carbon data from SDA forecast (copying Cami's code)
 ```{r, echo = FALSE}
 
 # Load data
 SIPNET <- load("sda.all.forecast.analysis.Rdata")
 
-# site coordinates
+# Get site coordinates
 Site_Info <- readRDS("site.locs.rds")
 
 # Rename lists to years
 names(analysis.all) <- 2012:2021
 year <- 2012:2021
 
+# Names of variables
 variables <- c("AbvGrndWood", "LAI", "SoilMoistFrac", "TotSoilCarb")
 
 # Loop through each year list in analysis.all
@@ -75,16 +75,11 @@ for (year in names(analysis.all)) {
   analysis.all[[year]] <- year_df  # Update the list with modified data frame
 }
 
-```
 
-
-Assign the data numbers their coordinates and find which one is closest to each NEON site
-```{r, echo = FALSE}
-## Add column with corresponding site number for each plot in Neonplots
-
+# Load list of neon sites with their latitudes and longitudes
 Neonplots <- read.csv("Neon_sites_terrestrial.csv") 
 
-  # Add a column for site numbers in Site_Info (site_info has coordinates of each location in df)
+# Add a column for site numbers in Site_Info (site_info has coordinates of each location in df)
 Site_Info$Site_Number <- seq(1, nrow(Site_Info)) 
 
   # Extract latitude and longitude from Neonplots and Site_Info tables
@@ -117,12 +112,11 @@ for (i in 1:nrow(Neonplots)) {
   Neonplots$Closest_Site[i] <- Site_Info$Site_Number[closest_site_index]}
 
 ```
-A lot of the same domain NEON sights have the same cloests site index - is this right?
 
-
-Filtering analysis data with relevant sites (Cami's also does years - should I do that?)
+Filtering analysis data with relevant sites
 ```{r, echo=FALSE}
 ## Filter analysis.all to only include relevant sites ##
+
 # Get the list of sites to keep from Neonplots
 sites_to_keep <- Neonplots$Closest_Site  
 
@@ -142,7 +136,6 @@ for (year in names(analysis.all)) {
   analysis.fia[[year]] <- df_filtered}
 
 ```
-two have same closest site, GUAN and LAJA - they should each be different right??
 
 Now extract the sites from Neonplots
 ```{r, echo = FALSE}
@@ -159,7 +152,6 @@ for (year in names(analysis.fia)) {
   current_year <- as.numeric(substr(year, 1, 4))
   
   # Identify columns with site numbers that match valid_sites
-  # Extract the site number from column names using regex
   matching_columns <- grep(paste0("_Site(", paste(valid_sites, collapse = "|"), ")$"), 
                            colnames(year_df), value = TRUE)
   
@@ -176,6 +168,7 @@ summary_list <- list()
 # Loop through each year's data frame in analysis.all
 names(analysis.fia) = names(analysis.all)
 for (year in names(analysis.all)) {
+  
   # Extract the year from the full date format 
   year_only <- sub("^(\\d{4}).*", "\\1", year)
   
@@ -196,6 +189,7 @@ for (year in names(analysis.all)) {
   for (site in site_numbers) {
     # Create a vector for soil carbon data
     tsc_col <- paste0("TotSoilCarb_Site", site)
+    
      # Check if columns exist in the data frame
     if (tsc_col %in% colnames(df)) {
        soilC = df[[tsc_col]]
@@ -226,16 +220,16 @@ hist(final_summary_table[["SC_Mean_Mod"]], main = "Histogram of Soil Carbon Mean
 ```
 
 
-Loading soil carbon data from NEON using code from github (extract_NEON_veg_R)
+Loading soil carbon data from NEON (Alexi's code)
 ```{r, echo = FALSE}
 
 # load copy of Alexi's code
 source("extract_neon_sc_func.R") 
 
-# I want all of the data over time
+# Set start and end to NA to get all years
 start_date = NA
 end_date = NA 
-store_dir <- "/Users/chane/OneDrive/Documents/ef lab/R files" # storing to folder I am in
+store_dir <- "/Users/chane/OneDrive/Documents/ef_lab/R_files" # storing to folder I am in
 
 # create summary table for loading data 
 summary_table_NEON_data <- data.frame(sitename = character(240),
@@ -276,12 +270,12 @@ temp_summary_NEON <- summary_table_NEON_data
 
 ```
 
-Add forecast data to summary table
+Add model to summary table
 ```{r}
 # create summary_table as copy of neon table
 summary_table <- temp_summary_NEON
 
-#removed NAs
+# remove NAs
 summary_table <- drop_na(summary_table)
 
 # add row for sitename
@@ -307,7 +301,7 @@ summary_table <- summary_table[order(summary_table$year),]
 summary_table$SC_mean_forecast = numeric(nrow(summary_table));
 summary_table$SC_sd_forecast = numeric(nrow(summary_table))
 
-c<- 1 # counter
+c = 1 # counter
 
 # add forecast data, leave zeros where no forecast data
 for (i in 1:length(final_summary_table$Year)){
@@ -322,17 +316,16 @@ for (i in 1:length(final_summary_table$Year)){
   }
 }
 
+
 ```
 
 Analysis!
 ```{r, echo = FALSE}
-# Bivariate of Soil carbon averages from forecast and NEON data
-# make table through 2021
-# summary_table$SC_mean_forecast = summary_table$SC_mean_forecast* 10 is it wrong units??
+# Plot summary table
+
 summary_table_2021 = summary_table[1:77, 1:12]
 ggplot(summary_table_2021, aes(x=SC_mean_forecast, y=mean_soilC)) + geom_point(size = 2)
 
-# all 3 really high ones are from GUAN (forest in Puerto Rico)
 ```
 
 Map of RMS error
@@ -341,7 +334,7 @@ Map of RMS error
 summary_table$error_soilC = numeric(nrow(summary_table))
 
 for (i in 1:nrow(summary_table)){
-  # forecast - actual
+  # model - actual
   summary_table$error_soilC[i] = (summary_table$SC_mean_forecast[i] - summary_table$mean_soilC[i])
 } 
 
@@ -355,7 +348,7 @@ error_df$sitename <- unique(summary_table$sitename) # make list of names
 
 # create temp vector for before averages
 vec <- numeric(1)
-c <- 1 # counter
+c = 1 # counter
 
 for (i in 1:nrow(error_df)){
   for (j in 1:nrow(summary_table)){
@@ -398,19 +391,8 @@ ggplot()+
 error_df <- error_df[order(error_df$rms_error),]
 
 ```
-Most error
-1. GUAN -- Guanica Forest -- D04 (PR) Tropical Forest
-2. SRER -- Santa Rita -- D14 (AZ) Desert
-3. UNDE -- Notre Dame -- D05 (MI)
-4. MLBS -- Mountain Lake -- D07 (VA)
-5. TEAK -- Lower Teakettle -- D17 (CA)
-6. BARR -- Utqiagvik -- D18 (AK) 
-7. BART -- Bartlett -- D01 (NH) Forest
-8. PUUM -- Puu Makaala -- D20 (HI)
-9. DEJU -- Delta Juntion -- D19 (AK) Tundra
-10.WREF -- Wind River forest -- D16 (WA) Forest
 
-find rate of change of each 
+Find rate of change of soil carbon for each 
 ```{r, echo = FALSE}
 
 # find rate of change of NEON data
@@ -425,7 +407,7 @@ error_df$roc_forecast <- numeric(46)
 error_df$roc_percent_error <- numeric(46)
 error_df$roc_error <- numeric(46)
 
-c <- 1
+c = 1
 for (i in 1:nrow(summary_table)){
   if (i == 1){
     if( summary_table$sitename[1] != summary_table$sitename[2]){
@@ -437,12 +419,12 @@ for (i in 1:nrow(summary_table)){
   }
   if (i>1){
     if (summary_table$sitename[i] != summary_table$sitename[i - 1]){
-    temp_name = summary_table$sitename[i]
-    j <- i
-    while (summary_table$sitename[j] == temp_name){
-      j <- j+1
-      if (j == 108){
-        break
+      temp_name = summary_table$sitename[i]
+      j <- i
+      while (summary_table$sitename[j] == temp_name){
+        j <- j+1
+        if (j == 108){
+          break
       }
     }
      c <- c+1
@@ -454,9 +436,7 @@ for (i in 1:nrow(summary_table)){
   }
 }
 
-# make a map of rate of change error
-
-# make bubble map with size and color depening on RMS error
+# Bubble map with size and color depending on RMS error
 ggplot()+
   geom_polygon(data = USA, aes(x= long, y = lat, group = group), fill="forestgreen", alpha = 0.3) + geom_point(data = error_df, aes(x= site_long, y = site_lat, size = roc_error, color = roc_error)) + geom_point(alpha = 0.7) + xlim(-170, -50) + scale_size_continuous(range = c(1,10)) + theme_void() + labs(title = "Rate of Change Residual") + theme(plot.title = element_text(hjust = 0.5),)
 
@@ -467,17 +447,9 @@ error_df <- error_df[order(error_df$roc_percent_error),]
 
 error_df_roc <- drop_na(error_df)
 ```
-Rate of change error over 1000
-1. ONAQ -- Onaqui -- D15 Utah
-2. SRER -- Santa Rita -- D14 (AZ) Desert
-3. TREE -- Treehaven -- D05 Wisconsin
-4. UNDE -- Notre Dame -- D05 (MI)
 
-almost every forecast rate of change in negative and if not negative very small
-neon data has many positive rates of change
-
+Residual map of rate of change (copied from Cami's code)
 ```{r, echo = FALSE}
-# Residual map of ROC (copied from cami's)
 
 # define colors based on sign
 error_df$Color <- with(error_df,
@@ -520,10 +492,9 @@ ggplot(data = us_map) +
 
 ```
 
+spatial variograms (from cami's code)
 ```{r, echo = FALSE}
-# spatial variograms (from cami's code)
 
-# coordinates(error_df) <- ~ site_long + site_lat
 proj4string(error_df) <- CRS("+proj=longlat +datum=WGS84")
 
 variogram_model_rmse <- variogram(rms_error ~ 1, data = error_df)
@@ -562,6 +533,7 @@ ggplot(data = variogram_model_roc, aes(x = dist, y = gamma)) +
 ggplot(data = us_map) +
   ggplot
 ```
+
 Compare error to 13 other factors (from Dongchen's folder on github)
 ```{r, echo = FALSE}
 
@@ -643,18 +615,6 @@ for (i in 23:35){
 }
 ```
 
-
-
-```{r}
-
-
-```
-
-
-  
-
-
-make table of (slope, p value, r^2)
 
 
 
