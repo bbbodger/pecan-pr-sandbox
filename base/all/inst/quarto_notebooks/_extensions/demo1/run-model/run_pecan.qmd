@@ -90,3 +90,34 @@ cat("\n Dimensions:\n")
 print(names(nc$dim))
 nc_close(nc)
 ```
+
+# Plot NetCDF Variables Using Selected Data and Custom Parameters
+
+```{r plot-graph, eval=TRUE}
+# This chunk generates a NetCDF variable plot dynamically
+# ℹ Make sure `settings` object is loaded from pecan.xml before running this
+# Required user inputs (customize these):
+#   - year: choose a year to visualize
+#   - xvar, yvar: choose variables from the **Variables** printed in the previous chunk (`get-plot-vars`)
+year     <- 2006
+xvar     <- 'coarse_root_carbon_content'  # Select valid variable from previous chunk output
+yvar     <- 'LAI'  # Select valid variable from previous chunk output
+width    <- 800
+height   <- 600
+filename <- "plot.png"
+
+workflow_outdir <- settings$outdir
+run_id         <- "99000000195"  # Update this from "run-model" output
+netcdf_file    <- file.path(workflow_outdir, "out", run_id, paste0(year, ".nc"))
+
+PEcAn.visualization::plot_netcdf(
+  datafile   = netcdf_file,
+  yvar     = yvar,
+  xvar     = xvar,
+  width    = width,
+  height   = height,
+  filename = filename,
+  year     = year
+)
+knitr::include_graphics(filename)
+```
