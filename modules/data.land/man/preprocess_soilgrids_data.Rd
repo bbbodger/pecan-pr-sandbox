@@ -2,27 +2,18 @@
 % Please edit documentation in R/IC_SOILGRID_Utilities.R
 \name{preprocess_soilgrids_data}
 \alias{preprocess_soilgrids_data}
-\title{Preprocess SoilGrids data}
+\title{Preprocess SoilGrids data for ensemble generation}
 \usage{
-preprocess_soilgrids_data(
-  soil_data,
-  default_soilC = 5,
-  default_uncertainty = 0.2,
-  verbose = FALSE
-)
+preprocess_soilgrids_data(soil_data, verbose = FALSE)
 }
 \arguments{
-\item{soil_data}{Raw soil carbon data from soilgrids_soilC_extract}
+\item{soil_data}{Dataframe with SoilGrids soil carbon data}
 
-\item{default_soilC}{Default soil carbon value in kg/m² to use when data is missing}
-
-\item{default_uncertainty}{Default uncertainty as fraction to use when data is missing}
-
-\item{verbose}{Print detailed progress information to the terminal? TRUE/FALSE}
+\item{verbose}{Logical, print detailed progress information}
 }
 \value{
-Processed soil carbon data
+List containing processed data and CV distributions for both depths
 }
 \description{
-Preprocess SoilGrids data
+Preprocess SoilGrids data for ensemble generation
 }

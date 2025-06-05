@@ -2,33 +2,33 @@
 % Please edit documentation in R/IC_SOILGRID_Utilities.R
 \name{generate_soilgrids_ensemble}
 \alias{generate_soilgrids_ensemble}
-\title{Generate ensemble members for a site}
+\title{Generate soil carbon ensemble members for specific depth}
 \usage{
 generate_soilgrids_ensemble(
   processed_data,
   site_id,
-  lat,
-  lon,
-  ensemble_size,
-  verbose = FALSE
+  size,
+  depth_layer,
+  verbose = FALSE,
+  seed = NULL
 )
 }
 \arguments{
-\item{processed_data}{Processed soil carbon data}
+\item{processed_data}{Output from preprocess_soilgrids_data()}
 
-\item{site_id}{Site ID}
+\item{site_id}{Target site ID}
 
-\item{lat}{Site latitude}
+\item{size}{Number of ensemble members to generate}
 
-\item{lon}{Site longitude}
+\item{depth_layer}{Depth layer ("0-30cm" or "0-200cm")}
 
-\item{ensemble_size}{Number of ensemble members to create}
+\item{verbose}{Logical, print detailed progress information}
 
-\item{verbose}{Print detailed progress information to the terminal? TRUE/FALSE}
+\item{seed}{Optional random seed for reproducibility}
 }
 \value{
-List of ensemble data for the site
+Vector of soil carbon values with proper uncertainty handling
 }
 \description{
-Generate ensemble members for a site
+Generate soil carbon ensemble members for specific depth
 }

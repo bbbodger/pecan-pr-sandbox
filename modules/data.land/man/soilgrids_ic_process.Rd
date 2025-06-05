@@ -2,7 +2,7 @@
 % Please edit documentation in R/IC_SOILGRID_Utilities.R
 \name{soilgrids_ic_process}
 \alias{soilgrids_ic_process}
-\title{Process SoilGrids data for initial conditions}
+\title{SoilGrids Initial Conditions (IC) Utilities}
 \usage{
 soilgrids_ic_process(
   settings,
@@ -13,13 +13,7 @@ soilgrids_ic_process(
 )
 }
 \arguments{
-\item{settings}{PEcAn settings list containing site information. Should include:
-\itemize{
-  \item settings$run$site - Site information with id, lat, lon
-  \item settings$ensemble$size - (Optional) Number of ensemble members to create
-  \item settings$soil$default_soilC - (Optional) Default soil carbon value in kg/m²
-  \item settings$soil$default_uncertainty - (Optional) Default uncertainty as fraction
-}}
+\item{settings}{PEcAn settings list containing site information}
 
 \item{csv_path}{Path to a CSV file containing site information (optional)}
 
@@ -27,26 +21,30 @@ soilgrids_ic_process(
 
 \item{overwrite}{Overwrite existing files? (Default: FALSE)}
 
-\item{verbose}{Print detailed progress information to the terminal? TRUE/FALSE}
+\item{verbose}{Print detailed progress information? (Default: FALSE)}
 }
 \value{
-List of paths to generated IC files
+List of paths to generated IC files, organized by site ID
 }
 \description{
-Process SoilGrids data for initial conditions
+Functions for generating soil carbon IC files from SoilGrids250m data
 }
 \details{
-This function processes SoilGrids data to create carbon initial condition
-         files. It extracts soil carbon data for all sites, handles missing values,
-         generates ensemble members, and writes NetCDF files.
+This module provides functions for extracting, processing, and generating
+         ensemble members for soil carbon initial conditions using SoilGrids data.
+         All soil carbon values are in kg/m2.
+Process SoilGrids data for initial conditions
 }
 \examples{
 \dontrun{
 # From settings object
 settings <- PEcAn.settings::read.settings("pecan.xml")
-ic_files <- soilgrids_ic_process(settings, dir = "output/IC/")
+ic_files <- soilgrids_ic_process(settings, dir = "~/output/IC")  
 
 # From CSV file
-ic_files <- soilgrids_ic_process(csv_path = "sites.csv", dir = "output/IC/")
+ic_files <- soilgrids_ic_process(csv_path = "sites.csv", dir = "~/output/IC")
 }
+}
+\author{
+Akash
 }

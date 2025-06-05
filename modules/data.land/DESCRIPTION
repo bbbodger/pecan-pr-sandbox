@@ -55,7 +55,8 @@ Imports:
     tidyr,
     tidyselect,
     traits,
-    XML (>= 3.98-1.4)      
+    XML (>= 3.98-1.4),
+    MASS
 Suggests:
     dataone,
     datapack,
