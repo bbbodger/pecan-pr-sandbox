@@ -139,11 +139,12 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
     
     
     ensemble.samples <- list()
-    
+    sampled.indices <- list()
     
     col.i <- 0
     for (pft.i in seq(pft.samples)) {
       ensemble.samples[[pft.i]] <- matrix(nrow = ensemble.size, ncol = length(pft.samples[[pft.i]]))
+      sampled.indices[[pft.i]] <- matrix(nrow = ensemble.size, ncol = length(pft.samples[[pft.i]]))
       
       # meaning we want to keep MCMC samples together
       if(length(pft.samples[[pft.i]])>0 & !is.null(param.names)){ 
@@ -169,10 +170,15 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
         col.i <- col.i + 1
         if(names(pft.samples[[pft.i]])[trait.i] %in% param.names[[pft.i]]){ # keeping samples
           ensemble.samples[[pft.i]][, trait.i] <- pft.samples[[pft.i]][[trait.i]][same.i]
+          sampled.indices[[pft.i]][, trait.i] <- same.i
         }else{
+          # Extract original trait values
+          trait.values <- pft.samples[[pft.i]][[trait.i]]
+          sampled.values <- stats::quantile(trait.values, random.samples[, col.i])
+
           ensemble.samples[[pft.i]][, trait.i] <- stats::quantile(pft.samples[[pft.i]][[trait.i]],
                                                                   random.samples[, col.i])
-        }
+          sampled.indices[[pft.i]][, trait.i] <- sapply(sampled.values, function(val) {which.min(abs(trait.values - val)) })
       }  # end trait
       ensemble.samples[[pft.i]] <- as.data.frame(ensemble.samples[[pft.i]])
       colnames(ensemble.samples[[pft.i]]) <- names(pft.samples[[pft.i]])
@@ -180,7 +186,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
     names(ensemble.samples) <- names(pft.samples)
     ans <- ensemble.samples
   }
-  return(ans)
+  return(list(ans,sampled.indices))
 } # get.ensemble.samples
 
 
