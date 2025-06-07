@@ -23,15 +23,6 @@
     <pft>
       <name>temperate.broadleaf.deciduous</name> 
     </pft>
-    <pft>
-      <name>temperate.coniferous</name> 
-    </pft>
-    <pft>
-      <name>temperate.deciduous</name> 
-    </pft>
-    <pft>
-      <name>temperate.deciduous.ALL</name> 
-    </pft>
   </pfts>
   <meta.analysis>
     <iter>3000</iter>
