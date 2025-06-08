@@ -58,7 +58,6 @@ Start model simulations and retrieve output for analysis.
 
 ```{r run-model}
 PEcAn.workflow::start_model_runs(settings)
-runModule.get.results(settings)
 ```
 
 ```{r get-plot-vars}
