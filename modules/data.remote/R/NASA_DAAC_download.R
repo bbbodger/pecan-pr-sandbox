@@ -13,7 +13,7 @@
 #'   downloaded files. Default is the current work directory(getwd()).
 #' @param band Character: the band name of data to be requested.
 #' @param credential.folder Character: physical path to the folder that contains 
-#' the credential file. The default is NULL.
+#' the credential file. The default is the current working directory.
 #' @param doi Character: data DOI on the NASA DAAC server, it can be obtained 
 #' directly from the NASA ORNL DAAC data portal (e.g., GEDI L4A through 
 #' https://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=2056).
@@ -52,16 +52,16 @@ NASA_DAAC_download <- function(ul_lat,
                                to,
                                outdir = getwd(),
                                band = NULL,
-                               credential.folder = NULL,
+                               credential.folder = getwd(),
                                doi,
                                just_path = FALSE) {
   # Determine if we have enough inputs.
   if (is.null(outdir) & !just_path) {
-    PEcAn.logger::logger.info("Please provide outdir if you want to download the file.")
+    message("Please provide outdir if you want to download the file.")
     return(0)
   }
   # setup DAAC Credentials.
-  DAAC_Set_Credential(folder.path = credential.folder)
+  netrc <- getnetrc(credential.folder)
   # setup arguments for URL.
   daterange <- c(from, to)
   # grab provider and concept id from CMR based on DOI.
@@ -133,7 +133,7 @@ NASA_DAAC_download <- function(ul_lat,
   if (!just_path) {
     # check if the doSNOW package is available.
     if ("try-error" %in% class(try(find.package("doSNOW")))) {
-      PEcAn.logger::logger.info("The doSNOW package is not installed.")
+      message("The doSNOW package is not installed.")
       return(NA)
     }
     # printing out parallel environment.
@@ -158,19 +158,19 @@ NASA_DAAC_download <- function(ul_lat,
         # if there is a problem in downloading file.
         while ("try-error" %in% class(try(
           response <-
-            httr::GET(
-              granules_href[i],
-              httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
-              httr::authenticate(user = Sys.getenv("ed_un"),
-                                 password = Sys.getenv("ed_pw"))
-            )
+          httr::GET(
+            granules_href[i],
+            httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
+            httr::config(netrc = TRUE, netrc_file = netrc),
+            httr::set_cookies("LC" = "cookies")
+          )
         ))){
           response <-
             httr::GET(
               granules_href[i],
               httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
-              httr::authenticate(user = Sys.getenv("ed_un"),
-                                 password = Sys.getenv("ed_pw"))
+              httr::config(netrc = TRUE, netrc_file = netrc),
+              httr::set_cookies("LC" = "cookies")
             )
         }
         # Check if we can successfully open the downloaded file.
@@ -178,7 +178,7 @@ NASA_DAAC_download <- function(ul_lat,
         if (grepl(pattern = ".h5", x = basename(granules_href)[i], fixed = T)) {
           # check if the hdf5r package exists.
           if ("try-error" %in% class(try(find.package("hdf5r")))) {
-            PEcAn.logger::logger.info("The hdf5r package is not installed.")
+            message("The hdf5r package is not installed.")
             return(NA)
           }
           while ("try-error" %in% class(try(hdf5r::H5File$new(file.path(outdir, basename(granules_href)[i]), mode = "r"), silent = T))) {
@@ -186,8 +186,8 @@ NASA_DAAC_download <- function(ul_lat,
               httr::GET(
                 granules_href[i],
                 httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
-                httr::authenticate(user = Sys.getenv("ed_un"),
-                                   password = Sys.getenv("ed_pw"))
+                httr::config(netrc = TRUE, netrc_file = netrc),
+                httr::set_cookies("LC" = "cookies")
               )
           }
           # if it's HDF4 or regular GeoTIFF file.
@@ -199,8 +199,8 @@ NASA_DAAC_download <- function(ul_lat,
               httr::GET(
                 granules_href[i],
                 httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
-                httr::authenticate(user = Sys.getenv("ed_un"),
-                                   password = Sys.getenv("ed_pw"))
+                httr::config(netrc = TRUE, netrc_file = netrc),
+                httr::set_cookies("LC" = "cookies")
               )
           }
         }
@@ -215,8 +215,8 @@ NASA_DAAC_download <- function(ul_lat,
           httr::GET(
             granules_href[i],
             httr::write_disk(file.path(outdir, basename(granules_href)[i]), overwrite = T),
-            httr::authenticate(user = Sys.getenv("ed_un"),
-                               password = Sys.getenv("ed_pw"))
+            httr::config(netrc = TRUE, netrc_file = netrc),
+            httr::set_cookies("LC" = "cookies")
           )
       }
     }
@@ -298,30 +298,34 @@ NASA_CMR_finder <- function(doi) {
   return(as.list(data.frame(cbind(provider, concept_id))))
 }
 
-#' Set NASA DAAC credentials to the current environment.
+#' Set NASA DAAC credentials to the .netrc file.
 #'
-#' @param replace Boolean: determine if we want to replace the current credentials from the environment. The default is FALSE.
-#' @param folder.path Character: physical path to the folder that contains the credential file. The default is NULL.
+#' @param dl_dir Character: physical path to the folder that the .netrc file will be generated.
 #'
 #' @author Dongchen Zhang
-DAAC_Set_Credential <- function(replace = FALSE, folder.path = NULL) {
-  if (replace) {
-    PEcAn.logger::logger.info("Replace previous stored NASA DAAC credentials.")
+getnetrc <- function (dl_dir) {
+  netrc <- file.path(dl_dir, ".netrc")
+  netrc <- gsub("~", Sys.getenv("HOME"), netrc)
+  if (file.exists(netrc) == FALSE ||
+      any(grepl("urs.earthdata.nasa.gov",
+                readLines(netrc))) == FALSE) {
+    netrc_conn <- file(netrc)
+    writeLines(c(
+      "machine urs.earthdata.nasa.gov",
+      sprintf(
+        "login %s",
+        getPass::getPass(msg = "Enter NASA Earthdata Login Username \n (or create an account at urs.earthdata.nasa.gov) :")
+      ),
+      sprintf(
+        "password %s",
+        getPass::getPass(msg = "Enter NASA Earthdata Login Password:")
+      )
+    ),
+    netrc_conn)
+    close(netrc_conn)
+    message(
+      "A netrc file with your Earthdata Login credentials was stored in the output directory "
+    )
   }
-  # if we have the credential file.
-  if (!is.null(folder.path)) {
-    if (file.exists(file.path(folder.path, ".nasadaacapirc"))) {
-      key <- readLines(file.path(folder.path, ".nasadaacapirc"))
-      Sys.setenv(ed_un = key[1], ed_pw = key[2])
-    }
-  }
-  # otherwise we will type the credentials manually.
-  if (replace | nchar(Sys.getenv("ed_un")) == 0 | nchar(Sys.getenv("ed_un")) == 0) {
-    Sys.setenv(ed_un = sprintf(
-      getPass::getPass(msg = "Enter NASA Earthdata Login Username \n (or create an account at urs.earthdata.nasa.gov) :")
-    ), 
-    ed_pw = sprintf(
-      getPass::getPass(msg = "Enter NASA Earthdata Login Password:")
-    ))
-  }
+  return(netrc)
 }
