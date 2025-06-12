@@ -118,6 +118,8 @@ NASA_DAAC_download <- function(ul_lat,
     PEcAn.logger::logger.info("No files found. Please check the spatial and temporal search window.")
     return(NA)
   }
+  # remove any urls that are not starting with https.
+  granules_href = granules_href[which(grepl("http*",granules_href))]
   # remove duplicated files.
   inds <- which(duplicated(basename(granules_href)))
   if (length(inds) > 0) {
