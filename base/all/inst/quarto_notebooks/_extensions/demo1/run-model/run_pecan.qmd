@@ -2,6 +2,12 @@
 title: "PEcAn Workflow"
 author: "PEcAn"
 format: pdf
+params:
+  year: 2004  # Default to start year from settings
+  xvar: "coarse_root_carbon_content"
+  yvar: "LAI"
+  width: 600
+  height: 400
 ---
 
 # Introduction {#introduction}
@@ -104,55 +110,102 @@ PEcAn.workflow::start_model_runs(settings)
 ```
 
 ```{r get-plot-vars}
-library(ncdf4)
-# ⚙️ Use settings$outdir to build base path
-workflow_outdir <- settings$outdir            # Correct path from pecan.xml <outdir>
+run_file <- file.path(settings$rundir, "runs.txt")
+run_id <- as.numeric(readLines(run_file)[1])  # Get first run ID
 
-# Default run_id for demo — you can replace this with your actual run ID
-# Tip: You can find your run ID from the "run-model" chunk output during execution
-run_id          <- "99000000195"
-
-#Select year to inspect
-year            <- 2006
-#Build NetCDF file path
-netcdf_file <- file.path(workflow_outdir, "out", run_id, paste0(year, ".nc"))
-
-#Open NetCDF file and show variable and dimension names
-nc <- nc_open(netcdf_file)
-cat("Variables:\n")
-print(names(nc$var))
-cat("\n Dimensions:\n")
-print(names(nc$dim))
-nc_close(nc)
-```
-
-# Plot NetCDF Variables Using Selected Data and Custom Parameters
-
-```{r plot-graph, eval=TRUE}
-# This chunk generates a NetCDF variable plot dynamically
-# ℹ Make sure `settings` object is loaded from pecan.xml before running this
-# Required user inputs (customize these):
-#   - year: choose a year to visualize
-#   - xvar, yvar: choose variables from the **Variables** printed in the previous chunk (`get-plot-vars`)
-year     <- 2006
-xvar     <- 'coarse_root_carbon_content'  # Select valid variable from previous chunk output
-yvar     <- 'LAI'  # Select valid variable from previous chunk output
-width    <- 800
-height   <- 600
-filename <- "plot.png"
-
-workflow_outdir <- settings$outdir
-run_id         <- "99000000195"  # Update this from "run-model" output
-netcdf_file    <- file.path(workflow_outdir, "out", run_id, paste0(year, ".nc"))
-
-PEcAn.visualization::plot_netcdf(
-  datafile   = netcdf_file,
-  yvar     = yvar,
-  xvar     = xvar,
-  width    = width,
-  height   = height,
-  filename = filename,
-  year     = year
+# Load PEcAn output using read.output()
+model_output <- PEcAn.utils::read.output(
+  runid  = settings$workflow$id,
+  outdir = file.path(settings$outdir, "out", run_id),
+  start.year = as.numeric(format(as.Date(settings$run$start.date), "%Y")),
+  end.year = as.numeric(format(as.Date(settings$run$end.date), "%Y")),
+  variables = NULL,  
+  dataframe = TRUE, 
+  verbose = TRUE    
 )
-knitr::include_graphics(filename)
+
+# Display available variables in model output
+cat("Available variables in model output:\n")
+print(names(model_output)[names(model_output) != "posix"])  
+
+```{r plot-timeseries}
+# To plot different variables, simply change the variable names in the plot commands
+# You can see all available variables in the output from the previous block above
+# They are also listed here for reference:
+
+# Carbon fluxes:
+# - GPP, NPP, NEE, TotalResp, AutoResp, HeteroResp, SoilResp
+# Carbon pools:
+# - AbvGrndWood, TotLivBiom, TotSoilCarb, leaf_carbon_content
+# - litter_carbon_content, fine_root_carbon_content, coarse_root_carbon_content
+# - GWBI, AGB
+# Water variables:
+# - Qle, Transp, SoilMoist, SoilMoistFrac, SWE
+# - litter_mass_content_of_water
+# Other:
+# - LAI
+
+# Example 1: Carbon fluxes
+plot(model_output$posix, model_output$GPP, 
+     type = 'l',
+     col = 'green',
+     xlab = 'Date',
+     ylab = 'Carbon Flux (kg C m-2 s-1)',
+     main = 'Carbon Fluxes Over Time')
+
+# Add NPP line
+lines(model_output$posix, model_output$NPP, 
+      col = 'blue')
+
+# Add legend
+legend('topright', 
+       legend = c('GPP', 'NPP'),
+       col = c('green', 'blue'),
+       lty = 1)
+
+# Example 2: Carbon pools
+# To plot carbon pools instead, uncomment and modify these lines:
+# plot(model_output$posix, model_output$TotLivBiom,
+#      type = 'l',
+#      col = 'darkgreen',
+#      xlab = 'Date',
+#      ylab = 'Carbon Pool (kg C m-2)',
+#      main = 'Carbon Pools Over Time')
+# lines(model_output$posix, model_output$TotSoilCarb,
+#       col = 'brown')
+# legend('topright',
+#        legend = c('Total Live Biomass', 'Total Soil Carbon'),
+#        col = c('darkgreen', 'brown'),
+#        lty = 1)
+
+# Example 3: Water variables
+# To plot water variables instead, uncomment and modify these lines:
+# plot(model_output$posix, model_output$SoilMoist,
+#      type = 'l',
+#      col = 'blue',
+#      xlab = 'Date',
+#      ylab = 'Soil Moisture (kg m-2)',
+#      main = 'Soil Moisture Over Time')
+# lines(model_output$posix, model_output$SWE,
+#       col = 'lightblue')
+# legend('topright',
+#        legend = c('Soil Moisture', 'Snow Water Equivalent'),
+#        col = c('blue', 'lightblue'),
+#        lty = 1)
+
+# Example 4: LAI and Biomass
+# To plot LAI and biomass, uncomment and modify these lines:
+# plot(model_output$posix, model_output$LAI,
+#      type = 'l',
+#      col = 'darkgreen',
+#      xlab = 'Date',
+#      ylab = 'LAI (m2 m-2)',
+#      main = 'Leaf Area Index Over Time')
+# lines(model_output$posix, model_output$AbvGrndWood,
+#       col = 'brown')
+# legend('topright',
+#        legend = c('LAI', 'Above Ground Wood'),
+#        col = c('darkgreen', 'brown'),
+#        lty = 1)
 ```
+
