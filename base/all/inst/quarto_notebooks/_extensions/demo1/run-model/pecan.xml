@@ -54,6 +54,9 @@
       <id>772</id>
       <met.start>2004/01/01</met.start>
       <met.end>2006/12/31</met.end>
+      <name>Niwot Ridge Forest/LTER NWT1 (US-NR1)</name>
+      <lat>40.0329</lat>
+      <lon>-105.546</lon>
     </site>
     <inputs>
       <met>
