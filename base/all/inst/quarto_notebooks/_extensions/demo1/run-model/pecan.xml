@@ -6,22 +6,10 @@
     <username/>
     <date>2025/05/26 08:25:18 +0000</date>
   </info>
-  <outdir>/data/workflows/PEcAn_99000000049</outdir>
-  <database>
-    <bety>
-      <user>bety</user>
-      <password>bety</password>
-      <host>postgres</host>
-      <port>5432</port>
-      <dbname>bety</dbname>
-      <driver>PostgreSQL</driver>
-      <write>true</write>
-    </bety>
-    <dbfiles>/data/dbfiles</dbfiles>
-  </database>
+  <outdir>/data/workflows/PEcAn_99000000001</outdir>
   <pfts>
     <pft>
-      <name>temperate.broadleaf.deciduous</name> 
+      <name>temperate.broadleaf.deciduous</name>
     </pft>
   </pfts>
   <meta.analysis>
@@ -30,24 +18,29 @@
      <on>FALSE</on>
      <use_ghs>TRUE</use_ghs>
     </random.effects>
+    <update>FALSE</update>
+    <threshold>1.2</threshold>
   </meta.analysis>
   <ensemble>
    <size>1</size>
    <variable>NPP</variable>
    <samplingspace>
    <parameters>
-    <method>uniform</method>
+    <method>none</method>
    </parameters>
    <met>
-    <method>sampling</method>
+    <method>none</method>
  	</met>
    </samplingspace>
   </ensemble>
   <model>
     <id>99000000003</id>
+    <type>SIPNET</type>
+    <delete.raw>FALSE</delete.raw>
+    <binary>sipnet</binary>
   </model>
   <workflow>
-    <id>99000000046</id>
+    <id>99000000001</id>
   </workflow>
   <run>
     <site>
@@ -62,7 +55,7 @@
       <met>
         <source>AmerifluxLBL</source>
         <output>SIPNET</output>
-      <username>Aritra_2004</username>
+        <username>Aritra_2004</username>
       </met>
     </inputs>
     <start.date>2004/01/01</start.date>
