@@ -4,44 +4,51 @@
 #' output in the same format as the input.
 #'
 #' @param input_path Character. Path to the input raster file.
-#' @param polygon An `sf` or `SpatVector` object to be used for clipping and masking.
+#' @param polygon An object or file coercible to a `SpatVector` by `terra::vect()`
+#'   (e.g., an `sf` object, a `SpatVector`, or a file path to a vector dataset).
+#'   used for clipping and masking. Must have a valid CRS.
 #' @param out_path Character. Path to save the processed raster.
-#' @return Character. The path to the saved output raster.
+#' @return Invisibly, the clipped `SpatRaster` object. The raster is also saved to `out_path`.
 #' @export
 #' @author David LeBauer
-clip_and_move_raster_files <- function(input_path, polygon, out_path, mask = TRUE, overwrite = TRUE) {
+clip_and_move_raster_file <- function(input_path, polygon, out_path, mask = TRUE, overwrite = TRUE) {
+
+  # Check that input and output files have same extension
+  # This function is not designed to convert between raster formats
+  if (tools::file_ext(input_path) != tools::file_ext(out_path)) {
+    PEcAn.logger::logger.error("Input and output files must have the same extension.")
+  }
+
   rast_in <- terra::rast(input_path)
-  # check that input file exists
-  if (!file.exists(input_path)) {
-    PEcAn.logger::logger.error("Input raster file does not exist: ", input_path)
+
+  # Coerce to SpatVector if not already
+  if (inherits(polygon, "SpatVector")) { # NB passing a SpatVector to terra::vect() fails
+    poly_sv <- polygon
+  } else {
+    poly_sv <- terra::vect(polygon)
   }
-  # check that polygon is valid
-  if (!inherits(polygon, c("sf", "SpatVector"))) {
-    PEcAn.logger::logger.error("Polygon must be an sf object or SpatVector")
+
+  if (terra::crs(poly_sv) == "") {
+    PEcAn.logger::logger.error("Input polygon must have CRS defined.")
   }
-  if (inherits(polygon, "sf")) {
-    # Convert sf object to SpatVector
-    polygon <- terra::vect(polygon)
+
+  # Reproject polygon to raster CRS if different
+  if (!terra::same.crs(poly_sv, rast_in)) {
+    poly_sv <- terra::project(poly_sv, terra::crs(rast_in))
   }
-  # Reproject polygon to raster CRS, convert to SpatVector
-  polygon_proj <- sf::st_transform(polygon, crs = terra::crs(rast_in))
-  polygon_vect <- terra::vect(polygon_proj)
-  rast_crop <- terra::crop(rast_in, polygon_vect)
-  
+
+  rast_crop <- terra::crop(rast_in, poly_sv)
+
   if (mask) {
-    rast_to_write <- terra::mask(rast_crop, polygon_vect)
+    rast_to_write <- terra::mask(rast_crop, poly_sv)
   } else {
     rast_to_write <- rast_crop
   }
-  filetype <- terra::filetype(rast_in)
-  gdal_opts <- terra::gdal(rast_in)
-  
+
   terra::writeRaster(
     rast_to_write,
     filename = out_path, 
-    overwrite = overwrite,
-    filetype = filetype,
-    gdal = gdal_opts
+    overwrite = overwrite
   )
-  return(out_path)
+  invisible(rast_to_write)
 }

@@ -1,57 +1,79 @@
 library(testthat)
 library(terra)
 library(sf)
+library(withr) # Add withr
 
-# load function under test
-source("../../clip_and_move_rasters.R")  # adjust relative path as needed
 
 # helper to create a small test raster
-make_raster <- function(crs = "EPSG:4326") {
+make_raster <- function(outfile, crs = "EPSG:4326") {
   r <- terra::rast(matrix(1:16, 4, 4),
-                   extent = terra::ext(0, 4, 0, 4), crs = crs)
-  f <- tempfile(fileext = ".tif")
-  terra::writeRaster(r, f, filetype = "GTiff", overwrite = TRUE)
-  f
+    extent = terra::ext(0, 4, 0, 4),
+    crs = crs
+  )
+  terra::writeRaster(r, outfile, filetype = "GTiff", overwrite = TRUE)
+  return(outfile)
 }
 
 test_that("clip & mask works: output clipped to polygon bbox and masked", {
-  in_r <- make_raster()
-  on.exit(unlink(in_r), add = TRUE)
-  # box polygon (1,1)-(3,3)
-  poly <- sf::st_as_sfc(sf::st_bbox(c(xmin=1, ymin=1, xmax=3, ymax=3)), crs = "EPSG:4326")
-  out_f <- tempfile(fileext = ".tif")
-  clip_and_move_raster_files(in_r, poly, out_f, mask = TRUE)
+  in_r <- local_tempfile(fileext = ".tif")
+  out_f <- local_tempfile(fileext = ".tif")
+
+  make_raster(outfile = in_r)
+
+  poly <- terra::as.polygons(
+    terra::ext(1, 3, 1, 3),
+    crs = "EPSG:4326"
+  )
+
+  clip_and_move_raster_file(input_path = in_r, polygon = poly, out_path = out_f, mask = TRUE)
+
   expect_true(file.exists(out_f))
+
   r_out <- terra::rast(out_f)
-  # extent == polygon bbox
   expect_equal(terra::ext(r_out), terra::ext(sf::st_bbox(poly)))
-  # some values NA (corners) and some not (center)
-  vals <- terra::values(r_out)
-  expect_true(any(is.na(vals)))
-  expect_true(any(!is.na(vals)))
-  unlink(out_f)
+
+  inside_vals <- terra::values(terra::mask(r_out, poly, inverse = FALSE))
+  expect_true(all(!is.na(inside_vals)))
+
+  outside_vals <- terra::values(terra::mask(r_out, poly, inverse = TRUE))
+  expect_true(all(is.na(outside_vals)))
 })
 
 test_that("clip without mask retains all values within bbox", {
-  in_r <- make_raster()
-  on.exit(unlink(in_r), add = TRUE)
-  poly <- sf::st_as_sfc(sf::st_bbox(c(xmin=1, ymin=1, xmax=3, ymax=3)), crs = "EPSG:4326")
-  out_f <- tempfile(fileext = ".tif")
-  clip_and_move_raster_files(in_r, poly, out_f, mask = FALSE)
+  in_r <- local_tempfile(fileext = ".tif")
+  make_raster(outfile = in_r)
+
+  poly <- sf::st_as_sf(
+    sf::st_as_sfc(
+      sf::st_bbox(c(xmin = 1, ymin = 1, xmax = 3, ymax = 3), crs = sf::st_crs(4326))
+    )
+  )
+  out_f <- local_tempfile(fileext = ".tif")
+
+  clip_and_move_raster_file(in_r, poly, out_f, mask = FALSE)
   r_out <- terra::rast(out_f)
   expect_false(any(is.na(terra::values(r_out))))
-  unlink(in_r); unlink(out_f)
 })
 
 test_that("preserves CRS and filetype", {
-  in_r <- make_raster(crs = "EPSG:3857")
-  on.exit(unlink(in_r), add = TRUE)
-  poly <- sf::st_as_sfc(sf::st_bbox(c(xmin=0, ymin=0, xmax=2, ymax=2)), crs = "EPSG:3857")
-  out_f <- tempfile(fileext = ".tif")
-  clip_and_move_raster_files(in_r, poly, out_f)
-  r_out <- terra::rast(out_f)
-  expect_true(terra::same.crs(r_out, terra::rast(in_r)))
-  # file extension implies GTiff
-  expect_true(grepl("\\.tif$", out_f))
-  unlink(in_r); unlink(out_f)
+  in_r_path <- local_tempfile(fileext = ".tif")
+  make_raster(outfile = in_r_path, crs = "EPSG:3857")
+
+  spatvect_raster <- terra::rast(in_r_path)
+
+  poly <- sf::st_as_sf(
+    sf::st_as_sfc(
+      sf::st_bbox(c(xmin = 1, ymin = 1, xmax = 3, ymax = 3), crs = sf::st_crs(3857))
+    )
+  )
+  out_f_path <- local_tempfile(fileext = ".tif")
+
+  clip_and_move_raster_file(input_path = in_r_path, polygon = poly, out_path = out_f_path)
+  r_out <- terra::rast(out_f_path)
+
+  expect_equal(
+    tools::file_ext(terra::sources(r_out)[1]),
+    tools::file_ext(terra::sources(spatvect_raster)[1])
+  )
+  expect_true(terra::same.crs(r_out, spatvect_raster))
 })
