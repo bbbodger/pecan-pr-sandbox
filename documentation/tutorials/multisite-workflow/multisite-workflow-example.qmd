@@ -17,14 +17,18 @@ Sites stored in the BETY database can be queried by `sitegroup` to retrieve pred
 
 Suppose you have a CSV file like this: 
 
-| id  | lat   | lon    | site_group |
-|-----|-------|--------|------------|
-| 101 | 40.1  | -88.2  | NEON       |
-| 102 | 41.2  | -87.9  | NEON       |
-| 201 | 39.9  | -90.0  | Ameriflux  |
-| 202 | 38.5  | -89.5  | Ameriflux  |
-
-Save this as `site_info.csv` in your working directory.
+```{r}
+# For this demo:
+site_info <- tibble::tribble(
+	~id, ~lat, ~lon,  ~elev, ~site_group,
+	101, 40.1, -88.2, 10,    "NEON",
+	102, 41.2, -87.9, 1980,  "NEON",
+	201, 39.9, -90.0, 925,   "Ameriflux",
+	202, 38.5, -89.5, 1108,  "Ameriflux"
+)
+# In a real workflow:
+# site_info <- read.csv("site_info.csv")
+```
 
 ---
 
