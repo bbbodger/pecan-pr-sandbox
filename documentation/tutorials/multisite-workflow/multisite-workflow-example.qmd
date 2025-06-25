@@ -12,9 +12,7 @@ You will learn how to read site metadata, filter by group, and create a MultiSet
 Sites stored in the BETY database can be queried by `sitegroup` to retrieve predefined sets of sites. Inside the database a sitegroup is nothing but a name given to a list of siteIDs, so in a flat file context we can do the same thing by adding one or more grouping columns.
 
 ---
-
-## Example `site_info.csv`
-
+Example `site_info.csv`
 Suppose you have a CSV file like this: 
 
 ```{r}
@@ -32,7 +30,7 @@ site_info <- tibble::tribble(
 
 ---
 
-## Load Required Libraries
+Load Required Libraries
 
 ```{r}
 library(dplyr)
@@ -42,7 +40,7 @@ library(dplyr)
 
 ---
 
-## Filter by one group
+Filter by one group
 
 ```{r}
 # Filter for NEON sites (change "NEON" to your desired group)
@@ -53,22 +51,91 @@ settings <- createMultiSiteSettings(settings, selected_sites) ## populates setti
 ```
 
 ---
+Example of how settings will look like before and after the execution of "createMultiSiteSettings()" 
 
-## (Optional) Integrate with workflow 
+Settings object before the execution of 'createMultiSiteSettings()'
 
 ```{r}
-settings$site_info <- selected_sites
+# Example: settings object with no site info yet
+
+settings <- list(
+  run = list(
+    start.date = "2025-01-01",
+    end.date = "2025-12-31",
+    inputs = list()
+    # No site info yet!
+  )
+)
+
+str(settings)  
+
 ```
-Now, any downstream function that receives settings can access the filtered site info.
 
---- 
+Here this shows the settings object after the execution of "createMultiSiteSettings()"
 
+```{r}
+# Example: settings object with site info
+
+settings <- list(
+  run = list(
+    list(
+      site = list(id = 101, lat = 40.1, lon = -88.2, elev = 10, site_group = "NEON", met.start = "2025-01-01", met.end = "2025-12-31"),
+      start.date = "2025-01-01",
+      end.date = "2025-12-31",
+      inputs = list()
+    ),
+    list(
+      site = list(id = 102, lat = 41.2, lon = -87.9, elev = 1980, site_group = "NEON", met.start = "2025-01-01", met.end = "2025-12-31"),
+      start.date = "2025-01-01",
+      end.date = "2025-12-31",
+      inputs = list()
+    ),
+    list(
+      site = list(id = 201, lat = 39.9, lon = -90.0, elev = 925, site_group = "Ameriflux", met.start = "2025-01-01", met.end = "2025-12-31"),
+      start.date = "2025-01-01",
+      end.date = "2025-12-31",
+      inputs = list()
+    ),
+    list(
+      site = list(id = 202, lat = 38.5, lon = -89.5, elev = 1108, site_group = "Ameriflux", met.start = "2025-01-01", met.end = "2025-12-31"),
+      start.date = "2025-01-01",
+      end.date = "2025-12-31",
+      inputs = list()
+    )
+  )
+)
+
+str(settings)
+
+```
+
+---
+
+## Group by multiple characterstics
+
+Say you're developing a new parameterization for the conifer PFT and you want to test it specifically at high elevation. By filtering and reassigning, this can be done without any edits to the saved `site_info.csv`:
+
+```{r}
+settings$pfts <- settings$pfts |>
+  append(list(
+    name="new_conifer",
+    posterior.files = "/path/to/new_conifer/post.distns.Rdata"))
+neon_hi_elev <- site_info |>
+  filter(
+    site_group == "NEON",
+    elev > 1000) |>
+  mutate(site.pft = "new_conifer")
+settings <- createMultiSiteSettings(settings, neon_hi_elev)
+```
+
+
+---
 
 ## Summary
 - You can use a flat-file (site_info.csv) to manage multisite workflows in PEcAn.
 - Filter your sites in R, then pass the filtered data frame to createMultiSiteSettings().
+- Group your data by multiple characterstics.
 - No database queries are needed for site metadata.
-
 
 ---
 
