@@ -1,5 +1,6 @@
 "package","version","needed_by_dir","type","is_pecan"
 "abind","*","modules/assim.batch","Imports",FALSE
+"abind","*","modules/assim.sequential","Suggests",FALSE
 "abind",">= 1.4.5","base/utils","Imports",FALSE
 "abind",">= 1.4.5","models/ed","Imports",FALSE
 "abind",">= 1.4.5","modules/data.atmosphere","Imports",FALSE
@@ -41,6 +42,7 @@
 "doParallel","*","modules/data.atmosphere","Suggests",FALSE
 "doParallel","*","modules/data.remote","Imports",FALSE
 "doSNOW","*","base/remote","Suggests",FALSE
+"doSNOW","*","modules/assim.sequential","Suggests",FALSE
 "doSNOW","*","modules/data.land","Imports",FALSE
 "doSNOW","*","modules/data.remote","Suggests",FALSE
 "dplR","*","modules/data.land","Imports",FALSE
@@ -65,6 +67,7 @@
 "emdbook","*","modules/assim.sequential","Suggests",FALSE
 "exactextractr","*","modules/assim.sequential","Suggests",FALSE
 "foreach","*","base/remote","Imports",FALSE
+"foreach","*","modules/assim.sequential","Suggests",FALSE
 "foreach","*","modules/data.atmosphere","Suggests",FALSE
 "foreach","*","modules/data.land","Imports",FALSE
 "foreach","*","modules/data.remote","Imports",FALSE
