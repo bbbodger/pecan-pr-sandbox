@@ -58,7 +58,7 @@ Average_ERA5_2_GeoTIFF <- function (start.date, end.date, in.path, outdir) {
   # convert dew point to relative humidity.
   beta <- (112 - (0.1 * temp) + dewpoint) / (112 + (0.9 * temp))
   relative.humidity <- beta ^ 8
-  VPD <- PEcAn.data.atmosphere::get.vpd(100*relative.humidity, temp)
+  VPD <- get.vpd(100*relative.humidity, temp)
   # combine together.
   PEcAn.logger::logger.info("Aggregate maps.")
   met.rast <- c(terra::rast(matrix(temp, nrow = dim(temp)[2], ncol = dim(temp)[1], byrow = T)),
