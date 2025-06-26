@@ -2,7 +2,7 @@
 % Please edit documentation in R/SDA_parallel_downscale.R
 \name{downscale_main}
 \alias{downscale_main}
-\title{downscale_rf_main}
+\title{downscale_main}
 \usage{
 downscale_main(
   settings,
@@ -39,7 +39,7 @@ downscale_main(
 paths to the ensemble downscaled maps.
 }
 \description{
-This is the main function to execute the RF training and prediction. 
+This is the main function to execute the machine learning training and prediction. 
 Note it will be deployed by each node you requested if the qsub feature is enabled below.
 }
 \author{

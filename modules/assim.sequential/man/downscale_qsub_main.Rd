@@ -10,7 +10,7 @@ downscale_qsub_main(folder.path)
 \item{folder.path}{Character: physical path to which the job file is located.}
 }
 \description{
-This qsub function helps to run the submitted qsub jobs for running the downscale_rf_main function.
+This qsub function helps to run the submitted qsub jobs for running the downscale_main function.
 }
 \author{
 Dongchen Zhang
