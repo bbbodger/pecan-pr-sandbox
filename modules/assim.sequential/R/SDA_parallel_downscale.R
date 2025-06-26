@@ -273,7 +273,7 @@ prepare_train_dat <- function(pts, analysis, covariates.dir, variable) {
 #' @title parallel_train
 #' 
 #' @param full_data numeric: the matrix generated using the `prepare_train_dat` function.
-#' @param method: character: machine learning method (currently support randomForest and xgboost).
+#' @param method character: machine learning method (currently support randomForest and xgboost).
 #' @param cores numeric: how many CPus to be used in the calculation, the default is the total CPU number you have.
 #'
 #' @return list of trained models across ensemble members.

@@ -13,9 +13,9 @@ parallel_train(
 \arguments{
 \item{full_data}{numeric: the matrix generated using the `prepare_train_dat` function.}
 
-\item{cores}{numeric: how many CPus to be used in the calculation, the default is the total CPU number you have.}
+\item{method}{character: machine learning method (currently support randomForest and xgboost).}
 
-\item{method:}{character: machine learning method (currently support randomForest and xgboost).}
+\item{cores}{numeric: how many CPus to be used in the calculation, the default is the total CPU number you have.}
 }
 \value{
 list of trained models across ensemble members.
