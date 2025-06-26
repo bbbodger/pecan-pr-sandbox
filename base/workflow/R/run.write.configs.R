@@ -99,6 +99,7 @@ run.write.configs <- function(settings, write = TRUE,
     samples <- new.env()
     load(samples.file, envir = samples) ## loads ensemble.samples, trait.samples, sa.samples, runs.samples, env.samples
     trait.samples <- samples$trait.samples
+    trait_sample_indices <- input_design[["param"]]
     ensemble.samples <- list()
     for (pft in names(trait.samples)) {
         pft_traits <- trait.samples[[pft]]
