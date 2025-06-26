@@ -187,7 +187,7 @@ end.dates <- c("2012-07-15", "2013-07-15", "2014-07-15",
 # parallel average ERA5 into covariates.
 future::plan(future::multisession, workers = 5, gc = T)
 paths <- start.dates %>% furrr::future_map2(end.dates, function(d1, d2){
-  Average_ERA5_2_GeoTIFF(d1, d2, in.path, outdir)
+  PEcAn.data.atmosphere::Average_ERA5_2_GeoTIFF(d1, d2, in.path, outdir)
 }, .progress = T) %>% unlist
 # create covariates time series.
 for (y in 2012:2024) {
