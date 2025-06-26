@@ -61,6 +61,7 @@ Suggests:
     tidyr,
     sp,
     utils,
+    xgboost,
     XML
 License: BSD_3_clause + file LICENSE
 Copyright: Authors
