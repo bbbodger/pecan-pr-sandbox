@@ -201,17 +201,17 @@ NASA_DAAC_download <- function(ul_lat,
       page <- page + 1
     }
   }
+  # if no files are found.
+  if (is.null(granules_href)) {
+    PEcAn.logger::logger.info("No files found. Please check the spatial and temporal search window.")
+    return(NA)
+  }
   # remove non-target files (e.g. s3)
   granules_href <- granules_href[which(grepl("https*", granules_href))]
   # remove duplicated files.
   inds <- which(duplicated(basename(granules_href)))
   if (length(inds) > 0) {
     granules_href <- granules_href[-inds]
-  }
-  # if no files are found.
-  if (is.null(granules_href)) {
-    PEcAn.logger::logger.info("No files found. Please check the spatial and temporal search window.")
-    return(NA)
   }
   # remove non-image files.
   inds <- which(str_ends(basename(granules_href), ".h5") |
