@@ -576,6 +576,7 @@
 "stringr","*","modules/assim.sequential","Imports",FALSE
 "stringr","*","modules/benchmark","Imports",FALSE
 "stringr","*","modules/data.land","Imports",FALSE
+"stringr","*","modules/data.remote","Suggests",FALSE
 "stringr",">= 1.1.0","base/visualization","Imports",FALSE
 "stringr",">= 1.1.0","models/ed","Imports",FALSE
 "stringr",">= 1.1.0","modules/data.atmosphere","Imports",FALSE

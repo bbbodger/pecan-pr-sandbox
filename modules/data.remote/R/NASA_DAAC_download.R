@@ -214,10 +214,10 @@ NASA_DAAC_download <- function(ul_lat,
     granules_href <- granules_href[-inds]
   }
   # remove non-image files.
-  inds <- which(str_ends(basename(granules_href), ".h5") |
-                  str_ends(basename(granules_href), ".tif") |
-                  str_ends(basename(granules_href), ".hdf") |
-                  str_ends(basename(granules_href), ".nc"))
+  inds <- which(stringr::str_ends(basename(granules_href), ".h5") |
+                  stringr::str_ends(basename(granules_href), ".tif") |
+                  stringr::str_ends(basename(granules_href), ".hdf") |
+                  stringr::str_ends(basename(granules_href), ".nc"))
   granules_href <- granules_href[inds]
   # detect existing files if we want to download the files.
   if (!just_path) {
