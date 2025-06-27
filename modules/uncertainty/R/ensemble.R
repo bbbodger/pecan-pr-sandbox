@@ -217,7 +217,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 ##' @importFrom rlang .data
 ##' @export
 ##' @author David LeBauer, Carl Davidson, Hamze Dokoohaki
-write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, 
+write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,input_design,
                                    clean = FALSE, write.to.db = TRUE, restart = NULL, samples = NULL, rename = FALSE) {
   
   
@@ -320,16 +320,19 @@ for (input_tag in names(settings$run$inputs)) {
     samp.ordered <- samp[c(order, names(samp)[!(names(samp) %in% order)])]
     if(is.null(samples)){
        #performing the sampling
-       samples<-list()
-       # For the tags specified in the xml I do the sampling
-      for(i in seq_along(samp.ordered)){
-         myparent<-samp.ordered[[i]]$parent # do I have a parent ?
-         #call the function responsible for generating the ensemble
-         samples[[names(samp.ordered[i])]] <- input.ens.gen(settings=settings,
-                                                         input=names(samp.ordered)[i],
-                                                         method=samp.ordered[[i]]$method,
-                                                         parent_ids=if( !is.null(myparent)) samples[[myparent]]) # if I have parent then give me their ids - this is where the ordering matters making sure the parent is done before it's asked
-       }
+      samples <- list()
+      input_tags <- names(settings$run$inputs)
+
+      for (input_tag in input_tags) {
+           if (input_tag %in% colnames(input_design)) {
+                  input_paths <- settings$run$inputs[[input_tag]]$path
+                  input_indices <- input_design[[input_tag]]
+
+                 samples[[input_tag]] <- list(
+                 samples = lapply(input_indices, function(idx) input_paths[[idx]])
+                 )
+    }
+
      }
     
     # if there is a tag required by the model but it is not specified in the xml then I replicate n times the first element 
