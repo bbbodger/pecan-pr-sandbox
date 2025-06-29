@@ -22,11 +22,14 @@
 #' @export
 #'
 #' @author David LeBauer, Shawn Serbin, Ryan Kelly, Mike Dietze
-run.write.configs <- function(settings, write = TRUE,  
+run.write.configs <- function(settings,input_design,write = TRUE,  
                               posterior.files = rep(NA, length(settings$pfts)), 
-                              overwrite = TRUE,
-                              input_design) {
-  ## Skip database connection if settings$database is NULL or write is False
+                              overwrite = TRUE) {
+  
+  if(is.null(input_design)) {
+    stop("`input_design` is required and must not be NULL.")
+     }
+     ## Skip database connection if settings$database is NULL or write is False
   if (!isTRUE(write) && is.null(settings$database)) {
     PEcAn.logger::logger.info("Not writing this run to database, so database connection skipped")
     con <- NULL  # Set con to NULL to avoid errors in subsequent code
@@ -105,8 +108,8 @@ run.write.configs <- function(settings, write = TRUE,
         pft_traits <- trait.samples[[pft]]
         ensemble.samples[[pft]] <- as.data.frame(
         lapply(names(pft_traits), function(trait) {
-        pft_traits[[trait]][trait_sample_indices]
-    })
+          pft_traits[[trait]][trait_sample_indices]
+        })
   )
   names(ensemble.samples[[pft]]) <- names(pft_traits)
 }
@@ -177,7 +180,8 @@ run.write.configs <- function(settings, write = TRUE,
                                                           ensemble.samples = ensemble.samples, 
                                                           settings = settings,
                                                           model = model, 
-                                                          write.to.db = write)
+                                                          write.to.db = write,
+                                                          input_design= input_design)
     
     # Store output in settings and output variables
     runs.samples$ensemble <- ens.run.ids <- ens.runs$runs
