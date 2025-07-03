@@ -37,7 +37,7 @@ library(PEcAn.settings)
 
 
 > **NOTE:** You must provide a 'settings' object (as an R list) before running the code below.
-> Or load from file: settings <- xmlToList(xmlParse("settings.xml"))
+> Or load from file: `settings <- read.settings("settings.xml")`
 
 ###(sample settings object for running the notebook for multisitesettings)
 
