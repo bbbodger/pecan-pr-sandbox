@@ -43,9 +43,6 @@
     <id>
      <id1>99000000006</id1>
     </id>
-    <path>
-     <path1>/data/dbfiles/AmerifluxLBL_SIPNET_site_0-772/AMF_US-NR1_BASE_HH_23-5.2004-01-01.2004-12-31.clim</path1>
-    </path>
    </met>
   </inputs>
   <start.date>2004/01/01</start.date>
