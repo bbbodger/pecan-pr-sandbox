@@ -81,7 +81,7 @@ settings <- PEcAn.settings::prepare.settings(settings)
 
 # Exploring the settings objects
 
-Once the settings have been read and prepared, it is often useful to inspect the structure of the `settings` object. This object is a comprehensive R list that contains all the parameters and configurations for your PEcAn workflow, derived directly from the `pecan.xml` file. 
+Once the settings have been read and prepared, it is often useful to inspect the structure of the `settings` object. This object is the R list that we just created from the `pecan.xml` file; it contains parameters and configurations for the PEcAn workflow. 
 
 *   `str(settings)` displays the internal structure of the `settings` object. This shows how the settings are represented in R and is useful for debugging and verifying settings.
 
