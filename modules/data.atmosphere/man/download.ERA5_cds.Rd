@@ -13,7 +13,8 @@ download.ERA5_cds(
   time = NULL,
   dataset = "reanalysis-era5-single-levels",
   product_type = "ensemble_members",
-  auto.create.key = T,
+  user = NULL,
+  key = NULL,
   timeout = 36000
 )
 }
@@ -34,7 +35,9 @@ download.ERA5_cds(
 
 \item{product_type}{Character. Product type to request from CDS (default: "ensemble_members").}
 
-\item{auto.create.key}{Boolean: decide if we want to generate the CDS RC file if it doesn't exist, the default is TRUE.}
+\item{user}{Character. CDS user ID (UID) from your CDS profile. Required for authentication.}
+
+\item{key}{Character. CDS API key from your CDS profile. Required for authentication.}
 
 \item{timeout}{numeric: the maximum time (in seconds) allowed to download the data. The default is 36000 seconds.}
 }
@@ -52,21 +55,35 @@ Download ERA5 climate data from the Copernicus Climate Data Store (CDS) API as N
 The function saves one NetCDF file per year in the specified output directory.
 }
 \details{
-This function requires a valid CDS API key and the Python `cdsapi` package installed and accessible via the `reticulate` package in R.
-If you do not have a `.cdsapirc` file with your API credentials, set `auto.create.key = TRUE` to be prompted for your CDS API URL and key.
+This function requires a valid CDS API key and the \code{ecmwfr} package for accessing the Copernicus Climate Data Store.
+The function will automatically prompt to install \code{ecmwfr} if not present in interactive sessions.
 To get a Copernicus CDS API key, register at \url{https://cds.climate.copernicus.eu/profile}.
-The API URL is \url{https://cds.climate.copernicus.eu/api/v2}.
+You must provide both \code{user} (UID) and \code{key} parameters from your CDS profile.
 }
 \examples{
 \dontrun{
+# Download ERA5 reanalysis data for 2020-2021
 era5_files <- download.ERA5_cds(
-  outfolder = "D:/working/era5_func_test",
+  outfolder = "~/output/era5_data",
   start_date = "2020-01-01",
-  end_date = "2022-12-31",
+  end_date = "2021-12-31",
   extent = c(-72.2215, -72.1215, 42.4878, 42.5878),
-  variables = c("2m_temperature","surface_pressure"),
-  time = NULL,
-  product_type = "reanalysis"
+  variables = c("2m_temperature", "surface_pressure"),
+  product_type = "reanalysis",
+  user = "your_cds_user_id",
+  key = "your_cds_api_key"
+)
+
+# Download ensemble data for specificed hours only
+era5_files <- download.ERA5_cds(
+  outfolder = "~/output/era5_data",
+  start_date = "2020-01-01",
+  end_date = "2020-12-31",
+  extent = c(-84.0, -82.0, 42.0, 44.0),
+  variables = "surface_solar_radiation_downwards",
+  time = c("00:00", "12:00"),
+  user = "your_cds_user_id",
+  key = "your_cds_api_key"
 )
 }
 }
