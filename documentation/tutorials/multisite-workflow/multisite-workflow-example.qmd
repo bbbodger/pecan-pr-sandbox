@@ -71,7 +71,7 @@ settings <- list(
   pfts = list(
   )
 )
-class(settings) <- "Settings"
+settings <- as.Settings(settings)
 
 ```
 
