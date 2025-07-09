@@ -5,6 +5,7 @@
 #' @param out.path output path
 #' @param write.db if write into Bety database
 #' @param write if write the settings into pecan.xml file in the outdir of settings.
+#' @param ncores numeric: the number of CPUs for the parallel compute. Default is 1.
 #'
 #' @return if write.db is True then return input IDs with physical paths; if write.db is False then return just physical paths of extracted ERA5 clim files.
 #' @export
@@ -12,7 +13,7 @@
 #' @author Dongchen Zhang
 #' @importFrom dplyr %>%
 #' @importFrom foreach %dopar%
-ERA5_met_process <- function(settings, in.path, out.path, write.db=FALSE, write = TRUE){
+ERA5_met_process <- function(settings, in.path, out.path, write.db=FALSE, write = TRUE, ncores = 1){
   #getting site info
   start_date <- settings$state.data.assimilation$start.date
   end_date <- settings$state.data.assimilation$end.date
@@ -78,15 +79,17 @@ ERA5_met_process <- function(settings, in.path, out.path, write.db=FALSE, write 
                                     end_date, 
                                     out.path, 
                                     "ERA5_", 
-                                    site_info$site.id)
+                                    site_info$site.id,
+                                    ncores)
   #Writing CLIM files for each site.
   PEcAn.logger::logger.info("Writing CLIM files!\n")
   # initialize parallel.
-  cores <- parallel::detectCores()
-  cl <- parallel::makeCluster(cores)
+  cl <- parallel::makeCluster(ncores)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   doSNOW::registerDoSNOW(cl)
   # setup progress bar.
   pb <- utils::txtProgressBar(min=1, max=length(final.nc.files), style=3)
+  on.exit(close(pb), add = TRUE)
   progress <- function(n) utils::setTxtProgressBar(pb, n)
   opts <- list(progress=progress)
   # grab specific model function.
@@ -109,9 +112,6 @@ ERA5_met_process <- function(settings, in.path, out.path, write.db=FALSE, write 
                        ensemble.clim.files
                      }
   PEcAn.logger::logger.info("\nFinished!")
-  # stop parallel.
-  close(pb)
-  parallel::stopCluster(cl)
   #write the paths into settings.
   if (write) {
     #write paths into settings.

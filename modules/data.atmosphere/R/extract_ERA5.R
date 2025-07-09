@@ -10,6 +10,7 @@
 #'  Does not include directory; specify that as part of in.path.
 #' @param newsite character: vector of site names. 
 #'  The length should match with that of slat and slon.
+#' @param ncores numeric: the number of CPUs for the parallel compute. Default is 1.
 #' @param vars character: names of variables to be extracted. If NULL all the variables will be
 #'  returned. Default is NULL.
 #' @param overwrite Logical if files needs to be overwritten.
@@ -39,16 +40,18 @@ extract.nc.ERA5 <-
            outfolder,
            in.prefix,
            newsite,
+           ncores = 1,
            vars = NULL,
            overwrite = FALSE,
            verbose = FALSE,
            ...) {
     # initialize parallel.
-    cores <- parallel::detectCores()
-    cl <- parallel::makeCluster(cores)
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
     doSNOW::registerDoSNOW(cl)
     # initialize progress bar.
     pb <- utils::txtProgressBar(min=1, max=length(slat), style=3)
+    on.exit(close(pb), add = TRUE)
     progress <- function(n) utils::setTxtProgressBar(pb, n)
     opts <- list(progress=progress)
     # Distributing the job between whatever core is available. 
@@ -144,9 +147,6 @@ extract.nc.ERA5 <-
                            out %>% purrr::map(~.x[['file']]) %>% unlist
                          }
     }
-    # stop parallel.
-    close(pb)
-    parallel::stopCluster(cl)
     # we only need the by-site ensemble folders for the met2model function.
     final.nc.files <- final.nc.files[[1]] %>% purrr::map(dirname)
     return(final.nc.files)

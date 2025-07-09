@@ -13,6 +13,7 @@ extract.nc.ERA5(
   outfolder,
   in.prefix,
   newsite,
+  ncores = 1,
   vars = NULL,
   overwrite = FALSE,
   verbose = FALSE,
@@ -37,6 +38,8 @@ Does not include directory; specify that as part of in.path.}
 
 \item{newsite}{character: vector of site names. 
 The length should match with that of slat and slon.}
+
+\item{ncores}{numeric: the number of CPUs for the parallel compute. Default is 1.}
 
 \item{vars}{character: names of variables to be extracted. If NULL all the variables will be
 returned. Default is NULL.}
