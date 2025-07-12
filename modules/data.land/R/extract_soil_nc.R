@@ -4,13 +4,15 @@
 #' @param lat Latitude 
 #' @param lon Longitude
 #' @param size Ensemble size
-#' @param radius radius in meters is used to take soil type samples around the site
+#' @param grid_size Size of the spatial sampling grid (default: 3)
+#' @param grid_spacing Spacing between grid cells in meters (default: 10)
 #' @param depths  Standard set of soil depths in m to create the ensemble of soil profiles with.
 #'
 #' @return It returns the address for the generated soil netcdf file
 #'
 #' @importFrom rlang .data
-#'
+#' @importFrom sf st_as_sf st_transform
+#' @importFrom terra rast crds
 #' @examples
 #' \dontrun{
 #'    outdir  <- "~/paleon/envTest"
@@ -18,73 +20,139 @@
 #'    lon     <- -80
 #'    PEcAn.data.land::extract_soil_gssurgo(outdir, lat, lon)
 #' }
-#' @author Hamze Dokoohaki
+#' @author Hamze Dokoohaki and Akash
 #' @export
 #' 
-extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.15,0.30,0.60)){
+extract_soil_gssurgo<-function(outdir, lat, lon, size=1, grid_size=3, grid_spacing=10, depths=c(0.15,0.30,0.60)){
   # I keep all the ensembles here 
   all.soil.ens <-list()
   
-  # I ask the gSSURGO to find all the mukeys (loosely can be thought of soil type) within 500m of my site location. 
-  # Basically I think of this as me going around and taking soil samples within 500m of my site.
-  #https://sdmdataaccess.nrcs.usda.gov/SpatialFilterHelp.htm
-  mu.Path <- paste0(
-    "https://sdmdataaccess.nrcs.usda.gov/Spatial/SDMWGS84Geographic.wfs?",
-    "SERVICE=WFS",
-    "&VERSION=1.1.0",
-    "&REQUEST=GetFeature&TYPENAME=MapunitPoly",
-    "&FILTER=",
-      "<Filter>",
-        "<DWithin>",
-          "<PropertyName>Geometry</PropertyName>",
-          "<gml:Point>",
-            "<gml:coordinates>", lon, ",", lat, "</gml:coordinates>",
-          "</gml:Point>",
-          "<Distance%20units=%27m%27>", radius, "</Distance>",
-        "</DWithin>",
-      "</Filter>",
-    "&OUTPUTFORMAT=XMLMukeyList"
+  # Grid-based spatial sampling (via WFS queries)
+  proj_crs <- sf::st_crs("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs")
+  wgs84_crs <- sf::st_crs(4326)
+  
+  # Convert center lat/lon to projected coordinates
+  point_sf <- sf::st_sfc(sf::st_point(c(lon, lat)), crs = wgs84_crs)
+  point_proj <- sf::st_transform(point_sf, proj_crs)
+  coords_proj <- sf::st_coordinates(point_proj)
+  
+  # Define grid extent 
+  half_extent <- (grid_size - 1) / 2 * grid_spacing
+  xmin <- coords_proj[1] - half_extent
+  xmax <- coords_proj[1] + half_extent
+  ymin <- coords_proj[2] - half_extent
+  ymax <- coords_proj[2] + half_extent
+  
+  # Create raster template
+  raster_template <- terra::rast(
+    xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
+    resolution = grid_spacing, crs = proj_crs
   )
+  grid_coords <- terra::crds(raster_template)
   
-  # XML handling with temp file
-  temp_file <- tempfile(fileext = ".xml")
-  xmll <- curl::curl_download(
-    mu.Path,
-    destfile = temp_file,
-    handle = curl::new_handle(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE)
-  )
+  # Transform grid coordinates back to WGS84 for gSSURGO queries
+  grid_sf <- sf::st_as_sf(data.frame(x = grid_coords[, 1], y = grid_coords[, 2]),
+                          coords = c("x", "y"), crs = proj_crs)
+  grid_wgs84 <- sf::st_transform(grid_sf, wgs84_crs)
+  grid_coords_wgs84 <- sf::st_coordinates(grid_wgs84)
   
-  # mukey extraction with error recovery
-  mukey_str <- tryCatch({
-    result <- XML::xpathApply(
-      doc = XML::xmlParse(temp_file),
-      path = "//MapUnitKeyList",
-      fun = XML::xmlValue)
-    if (is.list(result)) result[[1]] else result
-  }, error = function(e) {
-    xml_doc <- XML::xmlParse(temp_file)
-    all_text <- XML::xpathSApply(xml_doc, "//text()", XML::xmlValue)
-    mukey_candidates <- all_text[grepl("^[0-9,]+$", all_text)]
-    if (length(mukey_candidates) > 0) mukey_candidates[1] else NULL
-  })
-  if (file.exists(temp_file)) unlink(temp_file)
+  mukeys_all <- c()
+  for (i in seq_len(nrow(grid_coords_wgs84))) {
+    this_lon <- grid_coords_wgs84[i, 1]
+    this_lat <- grid_coords_wgs84[i, 2]
+    
+    # I ask the gSSURGO to find all the mukeys (loosely can be thought of soil type) within grid_spacing distance of each grid point location. 
+    # Basically I think of this as me going around and taking soil samples at each grid point.
+    #https://sdmdataaccess.nrcs.usda.gov/SpatialFilterHelp.htm
+    mu.Path <- paste0(
+      "https://sdmdataaccess.nrcs.usda.gov/Spatial/SDMWGS84Geographic.wfs?",
+      "SERVICE=WFS",
+      "&VERSION=1.1.0",
+      "&REQUEST=GetFeature&TYPENAME=MapunitPoly",
+      "&FILTER=",
+        "<Filter>",
+          "<DWithin>",
+            "<PropertyName>Geometry</PropertyName>",
+            "<gml:Point>",
+              "<gml:coordinates>", this_lon, ",", this_lat, "</gml:coordinates>",
+            "</gml:Point>",
+            "<Distance%20units=%27m%27>", grid_spacing, "</Distance>",
+          "</DWithin>",
+        "</Filter>",
+      "&OUTPUTFORMAT=XMLMukeyList"
+    )
+    
+    # XML handling with temp file
+    temp_file <- tempfile(fileext = ".xml")
+    xmll <- curl::curl_download(
+      mu.Path,
+      destfile = temp_file,
+      handle = curl::new_handle(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE)
+    )
+    
+    # mukey extraction with error recovery
+    mukey_str <- tryCatch({
+      result <- XML::xpathApply(
+        doc = XML::xmlParse(temp_file),
+        path = "//MapUnitKeyList",
+        fun = XML::xmlValue)
+      if (is.list(result)) result[[1]] else result
+    }, error = function(e) {
+      xml_doc <- XML::xmlParse(temp_file)
+      all_text <- XML::xpathSApply(xml_doc, "//text()", XML::xmlValue)
+      mukey_candidates <- all_text[grepl("^[0-9,]+$", all_text)]
+      if (length(mukey_candidates) > 0) mukey_candidates[1] else NULL
+    })
+    if (file.exists(temp_file)) unlink(temp_file)
+    
+    mukeys <- strsplit(mukey_str, ",")[[1]]
+    if (length(mukeys) == 0) next
+    
+    mukeys_all <- c(mukeys_all, mukeys)
+  }
   
-  mukeys <- strsplit(mukey_str, ",")[[1]]
-  if (length(mukeys) == 0) {
+  # Get unique mukeys from all grid points
+  mukeys_all <- unique(mukeys_all)
+  if (length(mukeys_all) == 0) {
     PEcAn.logger::logger.severe("No mapunit keys were found for this site.")
     return(NULL)
   }
+  
   # calling the query function sending the mapunit keys
   soilprop <- gSSURGO.Query(
-    mukeys,
+    mukeys_all,
     c("chorizon.sandtotal_r",
       "chorizon.silttotal_r",
       "chorizon.claytotal_r",
       "chorizon.hzdept_r",
       "chorizon.hzdepb_r",  
       "chorizon.om_r",      
-      "chorizon.dbthirdbar_r")) 
-  soilprop.new <- soilprop %>%
+      "chorizon.dbthirdbar_r",  # bulk density at 1/3 bar (field capacity);which is the standard field capacity bulk density measurement
+      "component.comppct_r")) 
+  
+  # Area-weighted aggregation by mukey and horizon depth
+  soilprop.weighted <- soilprop %>%
+    dplyr::mutate(
+      sandtotal_r = as.numeric(sandtotal_r),
+      silttotal_r = as.numeric(silttotal_r),
+      claytotal_r = as.numeric(claytotal_r),
+      hzdept_r = as.numeric(hzdept_r),
+      hzdepb_r = as.numeric(hzdepb_r),
+      om_r = as.numeric(om_r),
+      dbthirdbar_r = as.numeric(dbthirdbar_r),
+      comppct_r = as.numeric(comppct_r)
+    ) %>%
+    dplyr::group_by(mukey, hzdept_r, hzdepb_r) %>%
+    dplyr::summarise(
+      sandtotal_r = weighted.mean(sandtotal_r, comppct_r, na.rm = TRUE),
+      silttotal_r = weighted.mean(silttotal_r, comppct_r, na.rm = TRUE),
+      claytotal_r = weighted.mean(claytotal_r, comppct_r, na.rm = TRUE),
+      om_r = weighted.mean(om_r, comppct_r, na.rm = TRUE),
+      dbthirdbar_r = weighted.mean(dbthirdbar_r, comppct_r, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  soilprop.new <- soilprop.weighted %>%
     dplyr::arrange(.data$hzdept_r) %>%
     dplyr::select(
       fraction_of_sand_in_soil = "sandtotal_r",
@@ -100,8 +168,11 @@ extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.
                     ~ as.numeric(.) / 100),
       horizon_thickness_m = soil_depth_bottom - soil_depth,
       # Van Bemmelen factor conversion: OM to SOC
-      soc_percent = organic_matter_pct / 1.724,  
-      soil_organic_carbon_stock = horizon_thickness_m * (soc_percent / 100) * bulk_density * 10
+      # Using factor of 2.0 based on recent literature (Pribyl, 2010)
+      soc_percent = organic_matter_pct / 2.0,  
+      soc_kg_m2 = horizon_thickness_m * (soc_percent / 100) * bulk_density,
+      soil_organic_carbon_stock = units::set_units(soc_kg_m2, "kg/m^2") |> 
+                                  units::set_units("Mg/ha")
     ) %>%
     dplyr::filter(stats::complete.cases(.))
   if(nrow(soilprop.new) == 0) {
@@ -127,11 +198,19 @@ extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.
   tryCatch({
     # find the soil depth levels based on the depth argument 
     # if soil profile is deeper than what is specified in the argument then I go as deep as the soil profile.
-    if (max(soilprop.new$soil_depth) > max(depths)) depths <- sort (c(depths, max(soilprop.new$soil_depth)))
-    
+    if (max(soilprop.new$soil_depth) > max(depths)) {
+      depths <- sort(c(depths, max(soilprop.new$soil_depth)))
+    }
     depth.levs<-findInterval(soilprop.new$soil_depth, depths)
     depth.levs[depth.levs==0] <-1
     depth.levs[depth.levs>length(depths)] <-length(depths)
+    
+    # Remove any NA depth levels
+    valid_indices <- !is.na(depth.levs)
+    if(sum(!valid_indices) > 0) {
+      soilprop.new <- soilprop.new[valid_indices, ]
+      depth.levs <- depth.levs[valid_indices]
+    }
     
     soilprop.new.grouped<-soilprop.new %>% 
       dplyr::mutate(DepthL=depths[depth.levs])
@@ -149,22 +228,34 @@ extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.
           alpha <- dir.model$alpha
           alpha <- matrix(alpha, nrow= size, ncol=length(alpha), byrow=TRUE )
           simulated.soil <- sirt::dirichlet.simul(alpha)
-          
-          # Simulate SOC uncertainty using Gamma distribution to ensure positive values
+          # Validate SOC data before processing
+          if (any(is.na(DepthL.Data$soil_organic_carbon_stock))) {
+            PEcAn.logger::logger.warn("Found NA values in soil_organic_carbon_stock data. Removing incomplete records.")
+            DepthL.Data <- DepthL.Data[!is.na(DepthL.Data$soil_organic_carbon_stock), ]
+          }
+          if (nrow(DepthL.Data) == 0) {
+            PEcAn.logger::logger.warn("No valid SOC data after removing NAs")
+            return(NULL)
+          }
+          # Simulate SOC uncertainty using Gamma distribution
           soc_mean <- mean(DepthL.Data$soil_organic_carbon_stock, na.rm = TRUE)
           soc_sd <- stats::sd(DepthL.Data$soil_organic_carbon_stock, na.rm = TRUE)
-          if (!is.na(soc_sd) && soc_sd > 0) {
+          
+          # Handle edge cases for SOC simulation
+          if (nrow(DepthL.Data) == 1) {
+            simulated_soc <- rep(soc_mean, size)
+          } else if (is.na(soc_sd) || soc_sd == 0) {
+            simulated_soc <- rep(soc_mean, size)
+          } else {
             shape <- (soc_mean^2) / (soc_sd^2)
             rate <- soc_mean / (soc_sd^2)
             simulated_soc <- pmax(stats::rgamma(size, shape=shape, rate=rate), 0)
-          } else {
-            simulated_soc <- rep(soc_mean, size)
           }
           
           simulated.soil<-simulated.soil %>%
             as.data.frame %>%
-            dplyr::mutate(DepthL=rep(DepthL.Data[1,12], size),
-                   mukey=rep(DepthL.Data[1,8], size),
+            dplyr::mutate(DepthL=rep(DepthL.Data$DepthL[1], size),
+                   mukey=rep(DepthL.Data$mukey[1], size),
                    soil_organic_carbon_stock = simulated_soc) %>%
             `colnames<-`(c("fraction_of_sand_in_soil",
                            "fraction_of_silt_in_soil",
@@ -189,11 +280,11 @@ extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.
       Area = rep(1/length(unique_mukeys), length(unique_mukeys))
     ) 
     mukey_area <- mukey_area %>%
-  dplyr::filter(mukey %in% unique(simulated.soil.props$mukey)) %>%
-  dplyr::mutate(Area=.data$Area/sum(.data$Area, na.rm = TRUE))
+      dplyr::filter(mukey %in% unique(simulated.soil.props$mukey)) %>%
+      dplyr::mutate(Area=.data$Area/sum(.data$Area, na.rm = TRUE))
     #--- Mixing the depths
     soil.profiles<-simulated.soil.props %>% 
-      split(.$mukey)%>% 
+      split(.$mukey)%>%   
       purrr::map(function(soiltype.sim){
         sizein <- (mukey_area$Area[ mukey_area$mukey == unique(soiltype.sim$mukey)[1]])*size
         
@@ -251,7 +342,7 @@ extract_soil_gssurgo<-function(outdir, lat, lon, size=1, radius=500, depths=c(0.
     stats::setNames(rep("path", length(out.ense)))
   
   return(out.ense)
-}
+} 
 
 
 
