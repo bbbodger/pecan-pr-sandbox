@@ -98,6 +98,8 @@ str(settings)
 
 Before running the workflow, we need to ensure that the output directory specified in the settings exists. This directory will store all the model outputs, configuration files, and results from the simulation.
 
+> **Note:** All outputs will be written to `settings$outdir`. You can change this directory in your `pecan.xml` file or by modifying `settings$outdir` in the notebook before running the workflow.
+
 ```{r create-outdir}
 dir.create(settings$outdir, recursive = TRUE, showWarnings = FALSE)
 ```
