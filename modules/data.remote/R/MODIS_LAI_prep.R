@@ -246,13 +246,14 @@ MODIS_LAI_ts_filter <- function(lai.csv, boundary = c(0.05, 0.95)) {
 #' @param to character: the end time for searching the MODIS products.
 #' @param download.outdir character: Where the MODIS tiles will be stored.
 #' @param csv.outdir character: Where the final CSV file will be stored.
+#' @param credential_path Character: physical path to the credential file (.netrc file).
 #' 
 #' @return A data frame containing LAI and sd for each site and each time step.
 #' @export
 #' 
 #' @author Dongchen Zhang
 #' @importFrom magrittr %>%
-Prep.MODIS.CSV.from.DAAC <- function(site_info, extent, from, to, download.outdir, csv.outdir) {
+Prep.MODIS.CSV.from.DAAC <- function(site_info, extent, from, to, download.outdir, csv.outdir, credential_path) {
   # load previous CSV file.
   if (file.exists(file.path(csv.outdir, "LAI.csv"))) {
     previous.csv <- utils::read.csv(file.path(csv.outdir, "LAI.csv"), 
@@ -265,7 +266,7 @@ Prep.MODIS.CSV.from.DAAC <- function(site_info, extent, from, to, download.outdi
   doParallel::registerDoParallel(cl)
   # reproject site locations to MODIS projection.
   site.ids <- site_info$site_id
-  site.locs <- cbind(site_info$lon, site_info$lon) %>%
+  site.locs <- cbind(site_info$lon, site_info$lat) %>%
     `colnames<-`(c("lon","lat")) %>%
     `rownames<-`(site.ids)
   # create vector based on coordinates and MODIS projection.
@@ -275,18 +276,17 @@ Prep.MODIS.CSV.from.DAAC <- function(site_info, extent, from, to, download.outdi
   pts.reproj <- sp::spTransform(pts, "+proj=sinu +a=6371007.181 +b=6371007.181 +units=m")
   coords.reproj <- sp::coordinates(pts.reproj) %>% `colnames<-`(c("x", "y"))
   # download data.
-  metadata <- NASA_DAAC_download(ul_lat = extent[4], 
-                                 ul_lon = extent[1], 
-                                 lr_lat = extent[3], 
-                                 lr_lon = extent[2], 
-                                 from = from,
-                                 to = to, 
-                                 just_path = F,
-                                 outdir = download.outdir,
-                                 doi = "10.5067/MODIS/MCD15A3H.061",
-                                 ncore = parallel::detectCores()-1)
-  # grab file paths for downloaded hdf files.
-  modis.out <- list.files(download.outdir, full.names = T, pattern = "*.hdf")
+  modis.out <- NASA_DAAC_download(ul_lat = extent[4], 
+                                  ul_lon = extent[1], 
+                                  lr_lat = extent[3], 
+                                  lr_lon = extent[2], 
+                                  from = from,
+                                  to = to, 
+                                  just_path = F,
+                                  outdir = download.outdir,
+                                  doi = "10.5067/MODIS/MCD15A3H.061",
+                                  ncore = parallel::detectCores()-1,
+                                  credential_path = credential_path)
   # grab id for each file.
   ids <- basename(modis.out)
   # split string.
