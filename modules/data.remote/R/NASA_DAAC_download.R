@@ -55,7 +55,6 @@
 #'                             from = from, 
 #'                             to = to,
 #'                             data_version = "V2_1", 
-#'                             band = "V2_1",
 #'                             doi = doi,
 #'                             just_path = T)
 #' # MODIS LAI data.
