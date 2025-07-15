@@ -25,10 +25,11 @@ merge_image_tiles <- function(folder.path,
                                                  wm = "80%",                                                        
                                                  NUM_THREADS = 16,                                                        
                                                  COMPRESS = "DEFLATE")) {
-  if (!is.null(base.map)) {
-    ext <- terra::ext(base.map)
-    crs <- terra::crs(base.map, proj = TRUE)
-    dim <- dim(base.map)[2:1]
+  # Detect if we have the gdalwarp module installed.
+  # check shell environments.
+  if ("try-error" %in% class(try(system("gdalwarp"), silent = T))) {
+    PEcAn.logger::logger.info("The gdalwarp function is not detected in shell command.")
+    return(NA)
   }
   # convert hdf to tif.
   if (all(grepl(".hdf", list.files(folder.path)))) {
