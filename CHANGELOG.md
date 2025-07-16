@@ -17,6 +17,7 @@ For more information about this file see also [Keep a Changelog](http://keepacha
   - Compiled pages are live at https://pecanproject.github.io/package-documentation and inside Docker at `pecan.localhost/pkgdocs/`, and these are automatically updated each time a PR to the source packages is merged.
   - You can compile all pkgdown pages locally at any time with `make pkgdocs`.
 - The ERA5 NC extraction function can now handle multi-site instead of one.
+- Added function for merging images from the same tiling system (MODIS, GLANCE, ICESat-2, HLS, etc.).
 
 ### Fixed
 - api to correctly use x_var from request in plotResults #3528
