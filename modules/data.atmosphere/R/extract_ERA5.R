@@ -45,21 +45,41 @@ extract.nc.ERA5 <-
            overwrite = FALSE,
            verbose = FALSE,
            ...) {
-    # initialize parallel.
-    cl <- parallel::makeCluster(ncores)
-    on.exit(parallel::stopCluster(cl), add = TRUE)
-    doSNOW::registerDoSNOW(cl)
-    # initialize progress bar.
-    pb <- utils::txtProgressBar(min=1, max=length(slat), style=3)
-    on.exit(close(pb), add = TRUE)
-    progress <- function(n) utils::setTxtProgressBar(pb, n)
-    opts <- list(progress=progress)
-    # Distributing the job between whatever core is available. 
+    
+
     years <- seq(lubridate::year(start_date),
                  lubridate::year(end_date),
                  1
     )
-    ensemblesN <- seq(1, 10)
+    sample_file <- file.path(in.path, paste0(in.prefix, years[1], ".nc"))
+    if (!file.exists(sample_file)) {
+      PEcAn.logger::logger.severe(paste0("Sample file not found: ", sample_file))
+    }
+    
+    # Determine data type (ensemble vs reanalysis)
+    nc_test <- ncdf4::nc_open(sample_file)
+    is_ensemble <- "number" %in% names(nc_test$dim) || any(sapply(nc_test$var, function(v) v$ndims == 4))
+    ncdf4::nc_close(nc_test)
+    
+    if (is_ensemble) {
+      ensemblesN <- seq(1, 10)
+      if (verbose) PEcAn.logger::logger.info("Processing ERA5 ensemble data")
+    } else {
+      ensemblesN <- 1 
+      if (verbose) PEcAn.logger::logger.info("Processing ERA5 reanalysis data")
+    }
+    
+    # initialize parallel.
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    doSNOW::registerDoSNOW(cl)
+    
+    # initialize progress bar.
+    pb <- utils::txtProgressBar(min=0, max=length(slat), style=3)
+    on.exit(close(pb), add = TRUE)
+    progress <- function(n) utils::setTxtProgressBar(pb, n)
+    opts <- list(progress=progress)
+    # Distributing the job between whatever core is available. 
     final.nc.files <- vector("list", length = length(years))
     for (i in seq_along(years)) {
       # report progress.
@@ -68,15 +88,48 @@ extract.nc.ERA5 <-
       ncfile <- file.path(in.path, paste0(in.prefix, year, ".nc"))
       # open the file
       nc_data <- ncdf4::nc_open(ncfile)
-      # time.
-      t <- ncdf4::ncvar_get(nc_data, "time")
-      tunits <- ncdf4::ncatt_get(nc_data, 'time')
+      time_var <- if ("time" %in% names(nc_data$var)) "time" else "valid_time"
+      t <- ncdf4::ncvar_get(nc_data, time_var)
+      tunits <- ncdf4::ncatt_get(nc_data, time_var)
       tustr <- strsplit(tunits$units, " ")
-      timestamp <- as.POSIXct(t * 3600, tz = "UTC", origin = tustr[[1]][3])
-      # set the vars
-      if (is.null(vars)) {
-        vars <- names(nc_data$var)
+      
+      # handle different time units: 'time' uses hours, 'valid_time' uses seconds
+      if (time_var == "time") {
+        # traditional format: "hours since YYYY-MM-DD HH:MM:SS"
+        timestamp <- as.POSIXct(t * 3600, tz = "UTC", origin = tustr[[1]][3])
+      } else {
+        # new format: "seconds since YYYY-MM-DD HH:MM:SS" (typically 1970-01-01)
+        timestamp <- as.POSIXct(t, tz = "UTC", origin = tustr[[1]][3])
       }
+      
+      # set the vars - filter for valid variables
+      if (is.null(vars)) {
+        all_vars <- names(nc_data$var)
+        if (is_ensemble) {
+          # for ensemble data, keep variables with 4 dimensions (lon, lat, time, ensemble)
+          vars <- all_vars[sapply(all_vars, function(v) {
+            var_info <- nc_data$var[[v]]
+            var_info$ndims == 4 && 
+              var_info$prec %in% c("float", "double", "integer") &&
+              !v %in% c("expver") 
+          })]
+        } else {
+          # for reanalysis data, keep variables with 3 dimensions (lon, lat, time)
+          vars <- all_vars[sapply(all_vars, function(v) {
+            var_info <- nc_data$var[[v]]
+            var_info$ndims == 3 && 
+              var_info$prec %in% c("float", "double", "integer") &&
+              !v %in% c("longitude", "latitude", "time", "valid_time")
+          })]
+        }
+        if (verbose && length(vars) < length(all_vars)) {
+          skipped <- setdiff(all_vars, vars)
+          PEcAn.logger::logger.info(paste0("Processing variables: ", paste(vars, collapse=", ")))
+          PEcAn.logger::logger.info(paste0("Skipped metadata variables: ", paste(skipped, collapse=", ")))
+        }
+      }
+      ncdf4::nc_close(nc_data) 
+      
       # for the variables extract the data
       if (verbose) {
         PEcAn.logger::logger.info("Extracting NC file.\n")
@@ -85,10 +138,25 @@ extract.nc.ERA5 <-
       all.data.point <- 
         foreach::foreach(vname = vars, 
                          .packages=c("Kendall", "ncdf4")) %dopar% {
+                           nc_data <- ncdf4::nc_open(ncfile)
+                           on.exit(ncdf4::nc_close(nc_data), add = TRUE) 
                            ens.out <- vector("list", length = length(ensemblesN))
                            for (ens in ensemblesN) {
-                             brick.tmp <-
-                               raster::brick(ncfile, varname = vname, level = ens)
+                             if (is_ensemble) {
+                               var_data <- ncdf4::ncvar_get(nc_data, vname)
+                               brick.tmp <- raster::brick(
+                                 var_data[, , , ens],
+                                 xmn = min(nc_data$dim$longitude$vals),
+                                 xmx = max(nc_data$dim$longitude$vals),
+                                 ymn = min(nc_data$dim$latitude$vals),
+                                 ymx = max(nc_data$dim$latitude$vals),
+                                 crs = "+proj=longlat +datum=WGS84"
+                               )
+                               raster::setZ(brick.tmp, timestamp)  
+                             } else {
+                               brick.tmp <- raster::brick(ncfile, varname = vname)
+                               raster::setZ(brick.tmp, timestamp)
+                             }
                              nn <-
                                raster::extract(brick.tmp,
                                                sp::SpatialPoints(cbind(slon, slat)),
@@ -96,7 +164,7 @@ extract.nc.ERA5 <-
                              # replacing the missing/filled values with NA
                              nn[nn == nc_data$var[[vname]]$missval] <- NA
                              # send out the extracted var as a new col
-                             ens.out[[ens]] <- t(nn)
+                             ens.out[[ens]] <- t(nn) 
                            }
                            ens.out
                          } %>% 
@@ -130,22 +198,24 @@ extract.nc.ERA5 <-
       final.nc.files[[i]] <- 
         foreach::foreach(data.point = all.site.data.point, 
                          s.ind = seq_along(slat),
-                         .packages=c("Kendall", "ncdf4", "PEcAn.data.atmosphere", "purrr"), 
-                         .options.snow=opts) %dopar% {
-                           # Calling the met2CF inside extract bc in met process met2CF comes before extract !
-                           out <- met2CF.ERA5(
-                             slat[s.ind],
-                             slon[s.ind],
-                             paste0(year,"-01-01"),
-                             paste0(year,"-12-31"),
-                             sitename=newsite[s.ind],
-                             outfolder,
-                             data.point,
-                             overwrite = FALSE,
-                             verbose = verbose
-                           )
-                           out %>% purrr::map(~.x[['file']]) %>% unlist
-                         }
+                         .packages=c("Kendall", "ncdf4", "PEcAn.data.atmosphere", "purrr", "xts", "lubridate"),
+                         .options.snow=opts,
+                         .export = c("met2CF.ERA5")) %dopar% {
+                                       # Calling the met2CF inside extract bc in met process met2CF comes before extract !
+                                       out <- met2CF.ERA5(
+                                         slat[s.ind],
+                                         slon[s.ind],
+                                         paste0(year,"-01-01"),
+                                         paste0(year,"-12-31"),
+                                         sitename=newsite[s.ind],
+                                         outfolder,
+                                         data.point,
+                                         overwrite = FALSE,
+                                         verbose = verbose,
+                                         is_ensemble = is_ensemble
+                                       )
+                                       out %>% purrr::map(~.x[['file']]) %>% unlist
+                                     }
     }
     # we only need the by-site ensemble folders for the met2model function.
     final.nc.files <- final.nc.files[[1]] %>% purrr::map(dirname)
