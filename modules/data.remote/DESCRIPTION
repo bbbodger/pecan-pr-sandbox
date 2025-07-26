@@ -35,6 +35,7 @@ Suggests:
     data.table,
     doSNOW,
     dplyr,
+    gdalUtils,
     getPass,
     ggplot2,
     grDevices,

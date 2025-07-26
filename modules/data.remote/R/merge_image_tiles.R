@@ -124,9 +124,18 @@ merge_image_tiles <- function(folder.path,
 #' outfolder <- "/projectnb/dietzelab/dongchen/anchorSites/NA_runs/MODIS_Phenology"
 #' band_name <- "NumCycles"
 #' # try grab all available bands from the target file.
-#' band_names <- gdal_conversion(in_path = in_path, outfolder = outfolder, band_name = NULL, just_band_name = T)
+#' band_names <- 
+#'   gdal_conversion(in_path = in_path, 
+#'     outfolder = outfolder, 
+#'     band_name = NULL, 
+#'     just_band_name = T)
 #' # try convert the first band of the available band names to GeoTIFF file.
-#' f <- gdal_conversion(in_path = in_path, outfolder = outfolder, band_name = band_names[1], just_band_name = F, target_format = ".tif")
+#' f <- 
+#'   gdal_conversion(in_path = in_path, 
+#'     outfolder = outfolder, 
+#'     band_name = band_names[1], 
+#'     just_band_name = F, 
+#'     target_format = ".tif")
 #' }
 gdal_conversion <- function(in_path, outfolder = NULL, band_name = NULL, just_band_name = T, target_format = ".tif") {
   # check if package has been installed.
