@@ -14,7 +14,8 @@ met2CF.ERA5(
   out.xts,
   overwrite = FALSE,
   verbose = TRUE,
-  is_ensemble = TRUE
+  is_ensemble = TRUE,
+  ens_size = 10
 )
 }
 \arguments{
@@ -39,6 +40,8 @@ or single reanalysis dataset.}
 
 \item{is_ensemble}{Logical. if TRUE (default), processes data as ensemble members. If FALSE, processes as single 
 reanalysis dataset.}
+
+\item{ens_size}{Number of ensemble members to process. Default is 10.}
 }
 \value{
 list of dataframes
