@@ -24,7 +24,6 @@ Imports:
     sp,
     MODISTools (>= 1.1.0),
     reticulate,
-    R.utils,
     PEcAn.logger,
     magrittr,
     PEcAn.remote,
