@@ -13,7 +13,7 @@ Generated from the `get_subdatasets` function.}
 \item{to}{character: physical path to the output file.}
 }
 \description{
-This function provides tool for reading band names of remote sensing image.
+This function provides tool the gdal_translate execution.
 }
 \author{
 Dongchen Zhang
