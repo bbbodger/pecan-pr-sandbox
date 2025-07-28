@@ -379,6 +379,8 @@ downscale_main <- function(settings, analysis, covariates.dir, time, variable, o
                                  analysis = analysis, 
                                  covariates.dir = covariates.dir, 
                                  variable = variable)
+  # remove NAs from the training data set.
+  full_data <- full_data[complete_cases(full_data),]
   # convert LC into factor.
   if ("LC" %in% colnames(full_data)) {
     full_data[,"LC"] <- factor(full_data[,"LC"])
