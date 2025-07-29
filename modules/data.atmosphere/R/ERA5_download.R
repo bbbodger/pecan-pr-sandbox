@@ -60,8 +60,6 @@
 #' @export
 #' 
 #' @importFrom purrr %>%
-#' @importFrom ecmwfr wf_set_key wf_request
-#' @importFrom lubridate year month day date
 #' @author Dongchen Zhang
 
 download.ERA5_cds <- function(outfolder, start_date, end_date, 
