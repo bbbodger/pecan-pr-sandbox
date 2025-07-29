@@ -49,7 +49,8 @@ met2CF.ERA5<- function(lat,
     "u10" = "eastward_wind",
     "v10" = "northward_wind",
     "ssrd" = "surface_downwelling_shortwave_flux_in_air",
-    "strd" = "surface_downwelling_longwave_flux_in_air"
+    "strd" = "surface_downwelling_longwave_flux_in_air",
+    "swvl1" = "volume_fraction_of_condensed_water_in_soil"
   )
   
   out.new <- ensemblesN %>%
@@ -134,7 +135,8 @@ met2CF.ERA5<- function(lat,
     "northward_wind" = "m s-1",
     "surface_downwelling_shortwave_flux_in_air" = "W m-2",
     "surface_downwelling_longwave_flux_in_air" = "W m-2",
-    "specific_humidity" = "1"
+    "specific_humidity" = "1",
+    "volume_fraction_of_condensed_water_in_soil" = "1"
   )
   cf_var_names = colnames(out.new[[1]])
   cf_var_units = cf_units_mapping[cf_var_names]
