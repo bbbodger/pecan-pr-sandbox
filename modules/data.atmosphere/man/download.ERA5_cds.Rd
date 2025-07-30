@@ -48,7 +48,7 @@ A list where each element is a list containing:
   \item{startdate}{Start date and time of the data in the file.}
   \item{enddate}{End date and time of the data in the file.}
   \item{mimetype}{MIME type of the file ("application/x-netcdf").}
-  \item{formatname}{Format name ("ERA5_year.nc").}
+  \item{formatname}{Format name ("ERA5_year.nc" or "ERA5.rea_year.nc").}
 }
 \description{
 Download ERA5 climate data from the Copernicus Climate Data Store (CDS) API as NetCDF files, year by year, according to user-specified parameters.
@@ -56,7 +56,6 @@ The function saves one NetCDF file per year in the specified output directory.
 }
 \details{
 This function requires a valid CDS API key and the \code{ecmwfr} package for accessing the Copernicus Climate Data Store.
-The function will automatically prompt to install \code{ecmwfr} if not present in interactive sessions.
 To get a Copernicus CDS API key, register at \url{https://cds.climate.copernicus.eu/profile}.
 You must provide both \code{user} (UID) and \code{key} parameters from your CDS profile.
 }
