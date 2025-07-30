@@ -43,26 +43,26 @@
 #' @export
 
 AmeriFlux_met_process <- function(site_id,
-                                   start_date,
-                                   end_date, 
-                                   outfolder,
-                                   username = "pecan", 
-                                   useremail = "@",
-                                   overwrite = FALSE, 
-                                   verbose = FALSE, 
-                                   format = NULL,
-                                   n_ens = 10, 
-                                   w_len = 30,
-                                   era5_user = NULL,
-                                   era5_key = NULL,
-                                   threshold = 0.5,
-                                   ...) {
+                                  start_date,
+                                  end_date, 
+                                  outfolder,
+                                  username = "pecan", 
+                                  useremail = "@",
+                                  overwrite = FALSE, 
+                                  verbose = FALSE, 
+                                  format = NULL,
+                                  n_ens = 10, 
+                                  w_len = 30,
+                                  era5_user = NULL,
+                                  era5_key = NULL,
+                                  threshold = 0.5,
+                                  ...) {
   
-  # Input validation
+  # input validation
   if (!grepl("@", useremail)) {
     PEcAn.logger::logger.severe("useremail must contain '@' for AmeriFlux authentication")
   }
-
+  
   # validate ERA5 credentials if provided
   has_era5 <- !is.null(era5_user) && !is.null(era5_key)
   if (!has_era5 && verbose) {
@@ -77,40 +77,47 @@ AmeriFlux_met_process <- function(site_id,
     downloads = file.path(outfolder, "downloads"),
     extracted = file.path(outfolder, "extracted"),
     cf_format = file.path(outfolder, "cf_format"),
-    gapfilled = file.path(outfolder, "gapfilled")
+    gapfilled = file.path(outfolder, "gapfilled"),
+    ensembles = file.path(outfolder, "ensembles")
   )
   if (has_era5) {
     dirs$era5_downloads <- file.path(outfolder, "era5_downloads")
     dirs$era5_processed <- file.path(outfolder, "era5_processed")
   }
-  on.exit({
-    lapply(dirs, function(path) unlink(path, recursive = TRUE, force = TRUE))
-  }, add = TRUE)
-  # create directories
   sapply(dirs, function(x) {
     if (!dir.exists(x)) dir.create(x, showWarnings = FALSE, recursive = TRUE)
   })
   
   tryCatch({
-    # 1. download AmeriFlux data
-    if(verbose) {
-      PEcAn.logger::logger.info(paste("Downloading AmeriFlux data for site", site_id))
-    }
-    download_results <- 
-      PEcAn.data.atmosphere::download.AmerifluxLBL(
-        sitename = site_id,
-        outfolder = dirs$downloads,
-        start_date = start_date,
-        end_date = end_date,
-        username = username,
-        useremail = useremail,
-        overwrite = overwrite,
-        verbose = verbose,
-        ...
-      )
-    csv_file <- download_results$file
+    # check for existing AmeriFlux data using site_id pattern
+    amf_pattern <- paste0("^AMF_", site_id, "_.*\\.csv$")
+    amf_files <- list.files(dirs$downloads, pattern = amf_pattern, full.names = TRUE)
     
-    # 2. extract state variables
+    if (!overwrite && length(amf_files) > 0) {
+      if(verbose) {
+        PEcAn.logger::logger.info(paste("Found existing AmeriFlux file:", basename(amf_files[1]), "- using existing data"))
+      }
+      csv_file <- amf_files[1]
+    } else {
+      if(verbose) {
+        PEcAn.logger::logger.info(paste("Downloading AmeriFlux data for site", site_id))
+      }
+      download_results <- 
+        PEcAn.data.atmosphere::download.AmerifluxLBL(
+          sitename = site_id,
+          outfolder = dirs$downloads,
+          start_date = start_date,
+          end_date = end_date,
+          username = username,
+          useremail = useremail,
+          overwrite = overwrite,
+          verbose = verbose,
+          ...
+        )
+      csv_file <- download_results$file
+    }
+    
+    # extract state variables
     if(verbose) {
       PEcAn.logger::logger.info("Extracting state variables")
     }
@@ -122,7 +129,7 @@ AmeriFlux_met_process <- function(site_id,
     )
     
     # variable patterns
-    patterns <- list(
+    input_names <- list(
       datetime = c("^TIMESTAMP_START$", "^TIMESTAMP_END$"),
       air_temp = c("^TA_", "^T_SONIC$"),
       soil_temp = c("^TS_"),
@@ -133,20 +140,20 @@ AmeriFlux_met_process <- function(site_id,
       precip = c("^P$"),
       radiation = c("^SW_IN", "^Rg", "^PPFD_IN", "^PAR")
     )
-    selected_cols <- unique(unlist(sapply(patterns, function(p) {
+    selected_cols <- unique(unlist(sapply(input_names, function(p) {
       unlist(sapply(p, function(x) grep(x, names(flux_data), value = TRUE)))
     })))
     state_vars <- flux_data[, ..selected_cols, drop = FALSE]
     extracted_file <- file.path(dirs$extracted, paste0(site_id, "_state_vars.csv"))
     data.table::fwrite(state_vars, extracted_file)
     
-    # 3. prepare CF conversion
+    # prepare CF conversion
     site_info <- amerifluxr::amf_site_info()
     format$lat <- site_info$LOCATION_LAT[site_info$SITE_ID == site_id]
     format$lon <- site_info$LOCATION_LONG[site_info$SITE_ID == site_id]
     format$skip <- 0 # No header lines in extracted ameriflux csv 
     
-    # 4. convert to CF format
+    # convert to CF format
     if(verbose) {   
       PEcAn.logger::logger.info("Converting to CF format")
     }
@@ -161,7 +168,7 @@ AmeriFlux_met_process <- function(site_id,
         overwrite = overwrite
       )
     
-    # 5. ERA5 Fallback 
+    # ERA5 fallback 
     if (has_era5) {
       if (verbose) PEcAn.logger::logger.info("Checking data coverage for ERA5 fallback")
       # check coverage of radiation variables (PAR and Rg) needed for metgapfill
@@ -196,7 +203,7 @@ AmeriFlux_met_process <- function(site_id,
         PEcAn.logger::logger.info(paste("PAR coverage:", round(par_coverage * 100, 1), "%"))
         PEcAn.logger::logger.info(paste("Soil moisture coverage:", round(swc_coverage * 100, 1), "%"))
       }
-
+      
       fill_vars <- c()
       # if BOTH PAR and Rg have insufficient coverage
       if ((!has_rg || rg_coverage < threshold) && 
@@ -214,40 +221,87 @@ AmeriFlux_met_process <- function(site_id,
         }
       }
       if (length(fill_vars) > 0) {
-        if(verbose) {
-          PEcAn.logger::logger.info(paste("Downloading ERA5 data for variables:", paste(fill_vars, collapse=", ")))
-        }
-        lat <- format$lat
-        lon <- format$lon
-
-        # download ERA5 data
-        era5_files <- 
-          PEcAn.data.atmosphere::download.ERA5_cds(
-            outfolder = dirs$era5_downloads,
-            start_date = start_date,
-            end_date = end_date,
-            extent = c(lon - 0.375, lon + 0.375, lat - 0.375, lat + 0.375), # 3*3 grid
-            variables = fill_vars,
-            product_type = "reanalysis",
-            user = era5_user,
-            key = era5_key
+        start_year <- lubridate::year(as.Date(start_date))
+        end_year <- lubridate::year(as.Date(end_date))
+        req_years <- start_year:end_year
+        
+        # find existing ERA5 files
+        era5_files <- list.files(dirs$era5_downloads, pattern = "^ERA5_\\d{4}\\.nc$", full.names = TRUE)
+        exist_years <- as.numeric(gsub(".*ERA5_(\\d{4})\\.nc", "\\1", basename(era5_files)))
+        
+        # check which years need download
+        dl_years <- c()
+        if (overwrite) {
+          dl_years <- req_years
+        } else {
+          dl_years <- req_years[!req_years %in% exist_years]
+          era5_var_map <- list(
+            "surface_solar_radiation_downwards" = "ssrd",
+            "volumetric_soil_water_layer_1" = "swvl1"
           )
+          for (f in era5_files) {
+            year <- as.numeric(gsub(".*ERA5_(\\d{4})\\.nc", "\\1", basename(f)))
+            if (year %in% req_years) {  
+              tryCatch({
+                nc <- ncdf4::nc_open(f)
+                avail_vars <- names(nc$var)
+                ncdf4::nc_close(nc)
+                req_vars <- sapply(fill_vars, function(v) era5_var_map[[v]])
+                miss_vars <- req_vars[!req_vars %in% avail_vars]
+                if (length(miss_vars) > 0) {
+                  dl_years <- c(dl_years, year)
+                  if(verbose) {
+                    PEcAn.logger::logger.info(paste("ERA5", year, "missing vars:", paste(miss_vars, collapse=", ")))
+                  }
+                }
+              }, error = function(e) {
+                dl_years <<- c(dl_years, year)
+                if(verbose) PEcAn.logger::logger.warn(paste("Cannot read ERA5", year, "- redownloading"))
+              })
+            }
+          }
+        }
+        dl_years <- unique(dl_years)
+        if (length(dl_years) == 0) {
+          if(verbose) PEcAn.logger::logger.info("All ERA5 files exist with required variables")
+        } else {
+          if(verbose) {
+            PEcAn.logger::logger.info(paste("Downloading ERA5 for years:", paste(sort(dl_years), collapse=", ")))
+          }
+          
+          dl_start_date <- paste0(min(dl_years), "-01-01")
+          dl_end_date <- paste0(max(dl_years), "-12-31")
+          lat <- format$lat
+          lon <- format$lon
+          
+          era5_files <- 
+            PEcAn.data.atmosphere::download.ERA5_cds(
+              outfolder = dirs$era5_downloads,
+              start_date = dl_start_date,
+              end_date = dl_end_date,
+              extent = c(lon - 0.375, lon + 0.375, lat - 0.375, lat + 0.375), # 3*3 grid
+              variables = fill_vars,
+              product_type = "reanalysis",
+              user = era5_user,
+              key = era5_key
+            )
+        }
         if(verbose) {
           PEcAn.logger::logger.info("Processing ERA5 data to CF format")
         }
         era5_cf_dirs <- 
           PEcAn.data.atmosphere::extract.nc.ERA5(
-            slat = lat,
-            slon = lon,
+            slat = format$lat,
+            slon = format$lon,
             in.path = dirs$era5_downloads,
-            start_date = start_date,
-            end_date = end_date,
+            start_date = start_date, 
+            end_date = end_date,    
             outfolder = dirs$era5_processed,
             in.prefix = "ERA5_",
             newsite = paste0(site_id, "_ERA5"),
             overwrite = TRUE,
             verbose = verbose
-          )
+          )  
         # merge ERA5 data with AmeriFlux CF file
         if(verbose) {
           PEcAn.logger::logger.info("Merging ERA5 data with AmeriFlux data")
@@ -258,7 +312,7 @@ AmeriFlux_met_process <- function(site_id,
           "surface_solar_radiation_downwards" = "surface_downwelling_shortwave_flux_in_air",
           "volumetric_soil_water_layer_1" = "volume_fraction_of_condensed_water_in_soil"
         )
-
+        
         nc_amf <- ncdf4::nc_open(cf_results$file, write = TRUE)
         nc_era5 <- ncdf4::nc_open(era5_cf_file)
         tryCatch({
@@ -275,7 +329,7 @@ AmeriFlux_met_process <- function(site_id,
             era5_data <- ncdf4::ncvar_get(nc_era5, cf_var)
             if (cf_var %in% names(nc_amf$var)) {
               amf_data <- ncdf4::ncvar_get(nc_amf, cf_var)
-
+              
               na_idx <- which(is.na(amf_data))
               if (length(na_idx) > 0) {
                 era5_interp <- approx(era5_time, era5_data, 
@@ -301,7 +355,7 @@ AmeriFlux_met_process <- function(site_id,
               new_var <- ncdf4::ncvar_def(name = cf_var, units = var_units, 
                                           dim = list(lon_dim, lat_dim, time_dim), 
                                           missval = -999)
-
+              
               nc_amf <- ncdf4::ncvar_add(nc_amf, new_var)
               era5_interp <- approx(era5_time, era5_data, 
                                     xout = amf_time_sec, 
@@ -321,7 +375,7 @@ AmeriFlux_met_process <- function(site_id,
       }
     }
     
-    # 6. gap filling
+    # gap filling
     if(verbose) {
       PEcAn.logger::logger.info("Running gap filling")
     }
@@ -335,7 +389,7 @@ AmeriFlux_met_process <- function(site_id,
         overwrite = overwrite
       )
     
-    # 7. generate ensembles
+    # generate ensembles
     if(verbose) {
       PEcAn.logger::logger.info(paste("Generating", n_ens, "ensemble members"))
     }
@@ -343,7 +397,7 @@ AmeriFlux_met_process <- function(site_id,
       PEcAn.data.atmosphere::met_temporal_downscale.Gaussian_ensemble(
         in.path = dirs$gapfilled,
         in.prefix = sub("\\.\\d+$", "", tools::file_path_sans_ext(basename(gapfill_results$file))),
-        outfolder = outfolder,
+        outfolder = dirs$ensembles,
         input_met = gapfill_results$file,
         train_met = gapfill_results$file,
         overwrite = overwrite,
@@ -352,7 +406,7 @@ AmeriFlux_met_process <- function(site_id,
         w_len = w_len,
         force_v4 = TRUE
       )
- 
+    
     # return ensemble paths with metadata
     results <- do.call(rbind, lapply(seq_along(ensemble_results), function(e) {
       data.frame(
@@ -368,7 +422,7 @@ AmeriFlux_met_process <- function(site_id,
     }))
     if(verbose) PEcAn.logger::logger.info("Processing complete")
     return(results)
-
+    
   }, error = function(e) {
     PEcAn.logger::logger.severe("Processing failed: ", e$message)
     return(NULL)
