@@ -4,7 +4,10 @@
 #' Please refer to the gdalwarp manual for more details
 #' https://gdal.org/en/stable/programs/gdalwarp.html
 #' 
-#' @param folder.path character: physical path to the folder that contains all the image tiles.
+#' @param in.path character: physical path to the folder that contains all the original image tiles.
+#' @param out.path  character: physical path to the folder that contains converted and merged images.
+#' @param band.name character: band name of the image. Default is NULL.
+#' @param just.band.name boolean: if we just want the band names of the image file. Default is TRUE.
 #' @param keep.files Boolean: if we want to keep the image tiles at the end.
 #' @param image.settings list: settings used during exporting merged image.
 #' Such as image coordinate system (crs), dimension, extents (ext), and average function (fun).
@@ -16,7 +19,11 @@
 #' @export
 #' 
 #' @author Dongchen Zhang
-merge_image_tiles <- function(folder.path, 
+#' @importFrom purrr %>%
+merge_image_tiles <- function(in.path, 
+                              out.path = NULL, 
+                              band.name = NULL,
+                              just.band.name = TRUE,
                               keep.files = FALSE, 
                               image.settings = list(crs = "EPSG:4326",
                                                     dimension = NULL,
@@ -32,15 +39,24 @@ merge_image_tiles <- function(folder.path,
     PEcAn.logger::logger.info("The gdalwarp function is not detected in shell command.")
     return(NA)
   }
-  # convert hdf to tif.
-  if (all(grepl(".hdf", list.files(folder.path)))) {
-    hdf.files <- list.files(folder.path, pattern = "*.hdf", full.names = T)
-    for (ff in hdf.files) {
-      temp <- terra::rast(ff)
-      terra::writeRaster(temp, gsub(".hdf", ".tif", ff), overwrite = T)
-      unlink(ff)
-    }
+  # grab file paths.
+  file.paths <- list.files(in.path, full.names = T)
+  # if we only want to know the exact band names from the image files.
+  if (just.band.name) {
+    band.names <- file.paths %>% 
+      gdal_conversion(just_band_name = just.band.name) %>% 
+      unlist %>% unique %>% sort
+    return(band.names)
   }
+  # Image conversion.
+  if (is.null(out.path)) {
+    PEcAn.logger::logger.info("Please provide the output directory to store the converted/mosaic image tiles.")
+    return(0)
+  }
+  converted.file.paths <- file.paths %>% 
+    gdal_conversion(outfolder = out.path, 
+                    band_name = band.name, 
+                    just_band_name = just.band.name) %>% unlist
   # write job.sh script.
   # insert image settings.
   gdal.cmd <- "gdalwarp"
@@ -85,23 +101,23 @@ merge_image_tiles <- function(folder.path,
            "module load gdal", 
            "gdalbuildvrt @VRT@ @TIF@",
            gdal.cmd)
-  cmd <- gsub("@VRT@", file.path(folder.path, "index.vrt"), cmd)
-  cmd <- gsub("@TIF@", file.path(folder.path, "*.tif"), cmd)
-  cmd <- gsub("@FINALTIFF@", file.path(folder.path, paste0("merged_image.tif")), cmd)
-  writeLines(cmd, con = file.path(folder.path, "job.sh"))
+  cmd <- gsub("@VRT@", file.path(out.path, "index.vrt"), cmd)
+  cmd <- gsub("@TIF@", file.path(out.path, "*.tif"), cmd)
+  cmd <- gsub("@FINALTIFF@", file.path(out.path, paste0(band.name, ".tif")), cmd)
+  writeLines(cmd, con = file.path(out.path, "job.sh"))
   # grand permissions to the job file.
   cmd <- "chmod 744 @JOBFILE@"
-  cmd <- gsub("@JOBFILE@", file.path(folder.path, "job.sh"), cmd)
+  cmd <- gsub("@JOBFILE@", file.path(out.path, "job.sh"), cmd)
   out <- system(cmd, intern = TRUE)
   # enter the folder and run the job file.
   cmd <- 'cd \"@JOBPATH@\";./job.sh'
-  cmd <- gsub(pattern = "@JOBPATH@", replacement = folder.path, x = cmd)
+  cmd <- gsub(pattern = "@JOBPATH@", replacement = out.path, x = cmd)
   out <- system(cmd, intern = TRUE)
   # remove files.
   if (!keep.files) {
-    unlink(list.files(folder.path, full.names = T)[which(!grepl("merged_image.tif", list.files(folder.path)))], recursive = T)
+    unlink(list.files(out.path, full.names = T)[which(!grepl(paste0(band.name, ".tif"), list.files(out.path)))], recursive = T)
   }
-  return(file.path(folder.path, paste0("merged_image.tif")))
+  return(file.path(out.path, paste0(band.name, ".tif")))
 }
 
 #' @description This function provides tool for remote sensing image conversion using GDAL utility.
