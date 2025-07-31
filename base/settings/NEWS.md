@@ -7,7 +7,8 @@
 
 ## Changed
 
-* The `tag` argument to `listToXml()` is now optional and will default to "pecan" if not specified. This sets the name of of the root XML tag that contains the entire resulting settings object.
+* The `tag` argument to `listToXml()` is now optional and will default to "pecan" if not specified. This sets the name of the root tag of the resulting XML object.
+* The first argument of `listToXml.MultiSettings()` has been renamed from `item` to `x`, and it now accepts but ignores `...`, both for consistency with the generic.
 
 
 # PEcAn.settings 1.9.0
