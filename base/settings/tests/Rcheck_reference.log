@@ -94,10 +94,10 @@ Package in Depends field not imported from: ‘methods’
   These packages need to be imported from (in the NAMESPACE file)
   for when this namespace is loaded but not attached.
 * checking S3 generic/method consistency ...  WARNING
-  update:
-    function(object, ...)
-  update.settings:
-    function(settings, force)
+update:
+  function(object, ...)
+update.settings:
+  function(settings, force)
 
 See section ‘Generic functions and methods’ in the ‘Writing R
 Extensions’ manual.
