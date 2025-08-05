@@ -61,7 +61,16 @@ install.packages('PEcAn.all')
 
 This demo illustrates how to run a basic PEcAn workflow using an R-based Quarto notebook. It will cover loading settings, writing model configuration files, and running model simulations. This approach provides a programmatic alternative to the web-based PEcAn interface for executing ecosystem models.
 
-# 2. Install SIPNET v1.3.0
+# 2. Session Info
+
+This section prints your R session information for reproducibility. Having this information at the beginning helps with debugging even if the notebook encounters errors later.
+
+```{r session-info}
+sessionInfo()
+PEcAn.all::pecan_version()
+```
+
+# 3. Install SIPNET v1.3.0
 
 If you haven't already installed the SIPNET binary, you can do so by running the following code. This will download the SIPNET binary to `demo_outdir/sipnet` and make it executable.
 
@@ -78,7 +87,7 @@ source(
 
 > Note: You can find the most recent version of the SIPNET binary at: [SIPNET GitHub Releases](https://github.com/PecanProject/sipnet/releases), but this notebook is designed to work with SIPNET v1.3.0.
 
-# 3. Load PEcAn Packages
+# 4. Load PEcAn Packages
 
 First, we need to load the PEcAn R packages. These packages provide all the functions we'll use to run the workflow.
 
@@ -87,7 +96,7 @@ First, we need to load the PEcAn R packages. These packages provide all the func
 library("PEcAn.all")
 ```
 
-# 4. Load PEcAn Settings Files
+# 5. Load PEcAn Settings Files
 
 This section handles the step of loading the PEcAn settings.
 
@@ -98,7 +107,7 @@ For a demo run, you can use the example `pecan.xml` file available at: `pecan/do
 settings_path <- here::here("documentation/tutorials/Demo_1_Basic_Run/pecan.xml")
 ```
 
-# 5. Prepare and Validate Settings
+# 6. Prepare and Validate Settings
 
 After specifying the path to the `pecan.xml` file, the next step involves reading and preparing these settings. PEcAn provides utilities to process and validate the configurations before execution begins. 
 
@@ -113,7 +122,7 @@ settings <- PEcAn.settings::read.settings(settings_path)
 settings <- PEcAn.settings::prepare.settings(settings)
 ```
 
-# 6. Explore the Settings Object
+# 7. Explore the Settings Object
 
 Once the settings have been read and prepared, it is useful to inspect the structure of the `settings` object. This object is an R list containing all parameters and configurations for the PEcAn workflow.
 
@@ -141,7 +150,7 @@ settings$info <- list(
 
 Editing the more interesting settings to change the PFT (`settings$pfts`) or extend the run (`settings$run$end.date`) is beyond the scope of this demo. You _could_ change the pft or the end date, but you would need a new file containing parameters for that PFT (`settings$pfts$pft$posterior.files`), or a climate file (`settings$run$met$path$path1`) that extends to the desired simulation period.
 
-# 7. Create Output Directory
+# 8. Create Output Directory
 
 Before running the workflow, we need to ensure that the output directory specified in the settings exists. This directory will store all the model outputs, configuration files, and results from the simulation.
 
@@ -149,19 +158,6 @@ Before running the workflow, we need to ensure that the output directory specifi
 
 ```{r create-outdir}
 dir.create(settings$outdir, recursive = TRUE, showWarnings = FALSE)
-```
-
-# 8. Prepare Meteorological Data
-
-This section sets up the path to the meteorological data file that the model will use for the simulation. The meteorological data contains essential climate variables like temperature, precipitation, solar radiation, and humidity that drive the ecosystem model.
-
-```{r prepare-met-directory}
-dir.create(here::here("dbfiles"))
-# Copy the meteorological data file to the dbfiles directory
-file.copy(
-  here::here("documentation/tutorials/Demo_1_Basic_Run/dbfiles/AMF_US-NR1_BASE_HH_23-5.2004-01-01.2004-12-31.clim"),
-  here::here("dbfiles/")
-)
 ```
 
 # 9. Write Model Configuration Files
@@ -318,11 +314,4 @@ If you want to remove all files and directories created by this workflow and sta
 # fs::dir_delete(settings$outdir)
 ```
 
-# 16. Session Info
-
-This section prints your R session information for reproducibility.
-
-```{r session-info}
-sessionInfo()
-```
 
