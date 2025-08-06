@@ -4,7 +4,7 @@
 \alias{extract.stringCode}
 \title{extract.stringCode}
 \usage{
-\method{extract}{stringCode}(x, extractor = from.TreeCode)
+extract.stringCode(x, extractor = from.TreeCode)
 }
 \arguments{
 \item{x}{string to decode}
