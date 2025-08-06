@@ -48,8 +48,7 @@ look_up_fertilizer_components <- function(
   type, 
   amount, 
   fraction_organic_n = NULL, 
-  fraction_organic_c = NULL,
-  cn_ratio = NULL) {
+  fraction_organic_c = NULL) {
   
 
   # Validate input for organic fertilizers
