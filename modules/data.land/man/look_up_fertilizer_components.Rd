@@ -50,7 +50,7 @@ transformation typically occurs within a day.
 The following is a list of valid fertilizer names:
 \itemize{
 \item Mineral fertilizers: ammonium_nitrate, anhydrous_ammonia, urea
-\item Fresh manures: beef_fr, broil_fr, dairy_fr, duck_fr, goat_fr, horse_fr,
+\item Fresh manures: manure, beef_fr, broil_fr, dairy_fr, duck_fr, goat_fr, horse_fr,
 layer_fr, sheep_fr, swine_fr, trkey_fr, veal_fr
 \item Compost: org_compost
 }
