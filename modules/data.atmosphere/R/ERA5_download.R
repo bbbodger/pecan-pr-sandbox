@@ -9,7 +9,7 @@
 #' To get a Copernicus CDS API key, register at \url{https://cds.climate.copernicus.eu/profile}.
 #' You must provide both \code{user} (UID) and \code{key} parameters from your CDS profile.
 #'
-#' You can check the "CC-BY" license under the \href{https://cds.climate.copernicus.eu/profile?tab=licences}{licenses tab of your profile page}.
+#' You can check the "CC-BY" license under the \href{https://cds.climate.copernicus.eu/profile?tab=licences}{'licences' tab of your profile page}.
 #' @param outfolder Character. Directory where downloaded NetCDF files will be saved.
 #' @param start_date character: the start date of the data to be downloaded. Format is YYYY-MM-DD (will only use the year part of the date)
 #' @param end_date character: the end date of the data to be downloaded. Format is YYYY-MM-DD (will only use the year part of the date)
