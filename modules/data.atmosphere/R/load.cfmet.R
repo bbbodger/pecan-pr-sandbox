@@ -51,10 +51,11 @@ load.cfmet <- function(met.nc, lat, lon, start.date, end.date) {
 
   all.dates <- data.frame(index = seq_along(time.idx), date = date)
   
-  if (nrow(all.dates) > 1) {
-    delta <- stats::median(diff(all.dates$date), na.rm = TRUE)
-  } else {
-    delta <- as.difftime(1, units = "hours")  
+  delta <- stats::median(diff(all.dates$date), na.rm = TRUE)
+  if (is.na(delta)) {
+    # probably only happens with a one-line met file
+    # fall back to requiring exact match
+    delta <- 0
   }
   
   if (start.date < (min(all.dates$date) - delta)) {
