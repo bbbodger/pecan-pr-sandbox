@@ -65,8 +65,7 @@ This demo illustrates how to run a basic PEcAn workflow using an R-based Quarto 
 
 This section prints your R session information for reproducibility. Having this information at the beginning helps with debugging even if the notebook encounters errors later.
 
-```{r session-info}
-sessionInfo()
+```{r version-info}
 PEcAn.all::pecan_version()
 ```
 
@@ -314,4 +313,10 @@ If you want to remove all files and directories created by this workflow and sta
 # fs::dir_delete(settings$outdir)
 ```
 
+# 16. Session Info
+This section prints your R session information for reproducibility.
+
+```{r session-info}
+sessionInfo()
+```
 
