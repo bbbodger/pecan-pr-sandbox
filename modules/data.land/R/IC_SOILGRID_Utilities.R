@@ -1,15 +1,12 @@
 #' SoilGrids Initial Conditions (IC) Utilities
-#' 
-#' @author Akash
 #' @description Functions for generating soil carbon IC files from SoilGrids250m data
 #' @details This module provides functions for extracting, processing, and generating
 #'          ensemble members for soil carbon initial conditions using SoilGrids data.
 #'          All soil carbon values are in kg/m2.
-
+#'
 #' Process SoilGrids data for initial conditions
 #' 
 #' @param settings PEcAn settings list containing site information
-#' @param csv_path Path to a CSV file containing site information (optional)
 #' @param dir Output directory for IC files
 #' @param overwrite Overwrite existing files? (Default: FALSE)
 #' @param verbose Print detailed progress information? (Default: FALSE)
@@ -22,14 +19,36 @@
 #' # From settings object
 #' settings <- PEcAn.settings::read.settings("pecan.xml")
 #' ic_files <- soilgrids_ic_process(settings, dir = "~/output/IC")  
-#'
-#' # From CSV file
-#' ic_files <- soilgrids_ic_process(csv_path = "sites.csv", dir = "~/output/IC")
 #' }
-soilgrids_ic_process <- function(settings, csv_path = NULL, dir, overwrite = FALSE, verbose = FALSE) {
+#' @importFrom dplyr %>%
+#' @author Akash
+#'
+soilgrids_ic_process <- function(settings, dir, overwrite = FALSE, verbose = FALSE) {
   start_time <- proc.time()
   
-  site_info <- PEcAn.settings::get.site.info(input = if (is.null(csv_path)) settings else csv_path)
+  site_info <- settings$run$site %>% 
+    {
+      if (is.list(.) && !is.null(.$id)) list(.) else .
+    } %>% 
+    purrr::map(function(site) {
+      site$lat <- as.numeric(site$lat)
+      site$lon <- as.numeric(site$lon)
+      str_id <- if (isTRUE(site$id > 1e9)) {
+        paste0(site$id %/% 1e9, "-", site$id %% 1e9)
+      } else {
+        as.character(site$id)
+      }
+      data.frame(
+        site_id = site$id,
+        lat = site$lat,
+        lon = site$lon,
+        site_name = site$name,
+        str_id = str_id,
+        stringsAsFactors = FALSE
+      )
+    }) %>% 
+    dplyr::bind_rows()
+
   n_sites <- nrow(site_info)
   if (n_sites == 0) {
     PEcAn.logger::logger.severe("No sites found in the provided input")
