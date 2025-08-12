@@ -183,6 +183,9 @@ soilgrids_ic_process <- function(settings, dir, overwrite = FALSE, verbose = FAL
 #' @return List containing processed data and CV distributions for both depths
 #' @export
 preprocess_soilgrids_data <- function(soil_data, verbose = FALSE) {
+  if (!requireNamespace("MASS", quietly = TRUE)) {
+    PEcAn.logger::logger.severe("MASS package required for SoilGrids ensemble generation")
+  }
   if (verbose) {
     PEcAn.logger::logger.info("Preprocessing soil carbon data following PEcAn standards")
   }
@@ -221,7 +224,7 @@ preprocess_soilgrids_data <- function(soil_data, verbose = FALSE) {
     }
     
     cv_values <- processed[[depth_info$std_col]][valid_cv] / processed[[depth_info$mean_col]][valid_cv]
-    cv_bounds <- quantile(cv_values, probs = c(0.05, 0.95), na.rm = TRUE)
+    cv_bounds <- stats::quantile(cv_values, probs = c(0.05, 0.95), na.rm = TRUE)
     cv_filtered <- cv_values[cv_values >= cv_bounds[1] & cv_values <= cv_bounds[2]]
     
     if (length(cv_filtered) < 5) {
