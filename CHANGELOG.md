@@ -22,6 +22,10 @@ For more information about this file see also [Keep a Changelog](http://keepacha
 - The ERA5 NC extraction function can now handle multi-site instead of one.
 - Added function for merging images from the same tiling system (MODIS, GLANCE, ICESat-2, HLS, etc.).
 - Added function for converting images towards the GDAL-supported formats (H5, NetCDF, HDF4, GeoTIFF, etc .).
+- New utility script `IC_SOILGRID_Utilities.R` for processing SoilGrids data to generate soil carbon initial condition (IC) files. This includes  (#3508):
+  - **`soilgrids_ic_process`**: A function to extract, process, and generate ensemble members from SoilGrids250m data.
+  - **`preprocess_soilgrids_data`**: A helper function to handle missing values and ensure data integrity during preprocessing. 
+  - **`generate_soilgrids_ensemble`**: A function to create ensemble members for a site based on processed soil carbon data. 
 
 ### Fixed
 - api to correctly use x_var from request in plotResults #3528
