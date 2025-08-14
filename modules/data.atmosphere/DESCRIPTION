@@ -62,7 +62,7 @@ Imports:
     zoo
 Suggests:
     doParallel,
-    ecmwfr,
+    ecmwfr (>= 2.0.0),
     doSNOW,
     furrr,
     future,
