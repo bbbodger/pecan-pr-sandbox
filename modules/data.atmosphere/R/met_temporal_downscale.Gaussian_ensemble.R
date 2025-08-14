@@ -230,9 +230,9 @@ met_temporal_downscale.Gaussian_ensemble <- function(in.path, in.prefix, outfold
         damping_factor * (tair_lag - tair_mean)
       
       if (!all(is.na(train$soil_temperature))) {
-        soil_residual_sd <- sd(train$soil_temperature - train$air_temperature, na.rm = TRUE)
+        soil_residual_sd <- stats::sd(train$soil_temperature - train$air_temperature, na.rm = TRUE)
         if (!is.na(soil_residual_sd) && soil_residual_sd > 0) {
-          soil_noise <- rnorm(length(soil_proc), 0, soil_residual_sd * 0.5)
+          soil_noise <- stats::rnorm(length(soil_proc), 0, soil_residual_sd * 0.5)
           soil_proc <- soil_proc + soil_noise
         }
       }
@@ -299,9 +299,9 @@ met_temporal_downscale.Gaussian_ensemble <- function(in.path, in.prefix, outfold
                                       sour[max(1, x-1)], 
                                       sour[x])
               base_sd <- stats::sd(a[lowday:highday], na.rm = TRUE)
-              sm_cv <- sd(sour, na.rm = TRUE) / mean(sour, na.rm = TRUE)
+              sm_cv <- stats::sd(sour, na.rm = TRUE) / mean(sour, na.rm = TRUE)
               if (!is.na(sm_cv) && is.finite(sm_cv)) {
-                sm_fc <- quantile(sour, 0.75, na.rm = TRUE)
+                sm_fc <- stats::quantile(sour, 0.75, na.rm = TRUE)
                 moisture_stress <- abs(antecedent_sm - sm_fc) / sm_fc
                 uncertainty_factor <- 1.0 + sm_cv * moisture_stress
                 if (current_precip > 0) {
@@ -530,12 +530,12 @@ met_temporal_downscale.Gaussian_ensemble <- function(in.path, in.prefix, outfold
           highday <- reso_len
         }
         if (length(train_ppfd) >= highday && !all(is.na(train_ppfd[lowday:highday]))) {
-          base_sd <- sd(train_ppfd[lowday:highday], na.rm = TRUE)
+          base_sd <- stats::sd(train_ppfd[lowday:highday], na.rm = TRUE)
         } else {
           base_sd <- NA
         }
         if (is.na(base_sd) || base_sd < 1e-6) {
-          cv_ppfd <- sd(ppfd_source, na.rm = TRUE) / mean(ppfd_source, na.rm = TRUE)
+          cv_ppfd <- stats::sd(ppfd_source, na.rm = TRUE) / mean(ppfd_source, na.rm = TRUE)
           if (!is.na(cv_ppfd) && is.finite(cv_ppfd)) {
             base_sd <- cv_ppfd * abs(ppfd_source[x])
           } else {
@@ -547,7 +547,7 @@ met_temporal_downscale.Gaussian_ensemble <- function(in.path, in.prefix, outfold
         for (n in seq_len(div)) {
           idx <- (x - 1) * div + n
           if (idx > 0 && idx <= length(is_daylight) && is_daylight[idx]) {
-            dwnsc_day[n] <- max(0, rnorm(1, mean = ppfd_source[x], sd = base_sd)) # daytime using gaussian downscaling
+            dwnsc_day[n] <- max(0, stats::rnorm(1, mean = ppfd_source[x], sd = base_sd)) # daytime using gaussian downscaling
           } else {
             dwnsc_day[n] <- 0 # nighttime ppfd must be zero
           }
