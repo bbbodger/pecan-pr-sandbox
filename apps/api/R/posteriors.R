@@ -7,7 +7,8 @@ library(dplyr)
 #' @return Information about Posteriors based on pft
 #' @author Nihar Sanda
 #* @get /
-searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit = 50, res) {
+searchPosteriors <- function(req, pft_id = NA, host_id = NA,
+                             offset = 0, limit = 50, res) {
   if (!limit %in% c(10, 20, 50, 100, 500)) {
     res$status <- 400
     return(list(error = "limit parameter must be 10, 20, 50, 100, or 500"))
@@ -17,7 +18,11 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
     select(everything())
 
   posteriors <- tbl(global_db_pool, "dbfiles") %>%
-    select(file_name, file_path, container_type, id = container_id, machine_id) %>%
+    select(file_name,
+           file_path,
+           container_type,
+           id = container_id,
+           machine_id) %>%
     inner_join(posteriors, by = "id") %>%
     filter(container_type == "Posterior") %>%
     select(-container_type)
@@ -59,7 +64,9 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
       has_prev <- TRUE
     }
 
-    qry_res <- qry_res[(as.numeric(offset) + 1):min((as.numeric(offset) + as.numeric(limit)), nrow(qry_res)), ]
+    start_idx <- as.numeric(offset) + 1
+    end_idx <- min((as.numeric(offset) + as.numeric(limit)), nrow(qry_res))
+    qry_res <- qry_res[start_idx:end_idx, ]
 
     result <- list(posteriors = qry_res)
     result$count <- nrow(qry_res)
@@ -70,7 +77,9 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
           req$HTTP_HOST,
           "/api/posteriors",
           req$PATH_INFO,
-          substr(req$QUERY_STRING, 0, stringr::str_locate(req$QUERY_STRING, "offset=")[[2]]),
+          substr(req$QUERY_STRING,
+                 0,
+                 stringr::str_locate(req$QUERY_STRING, "offset=")[[2]]),
           (as.numeric(limit) + as.numeric(offset)),
           "&limit=",
           limit
@@ -81,7 +90,9 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
           req$HTTP_HOST,
           "/api/posteriors",
           req$PATH_INFO,
-          substr(req$QUERY_STRING, 0, stringr::str_locate(req$QUERY_STRING, "limit=")[[2]] - 6),
+          substr(req$QUERY_STRING,
+                 0,
+                 stringr::str_locate(req$QUERY_STRING, "limit=")[[2]] - 6),
           "offset=",
           (as.numeric(limit) + as.numeric(offset)),
           "&limit=",
@@ -95,7 +106,9 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
         req$HTTP_HOST,
         "/api/workflows",
         req$PATH_INFO,
-        substr(req$QUERY_STRING, 0, stringr::str_locate(req$QUERY_STRING, "offset=")[[2]]),
+        substr(req$QUERY_STRING,
+               0,
+               stringr::str_locate(req$QUERY_STRING, "offset=")[[2]]),
         max(0, (as.numeric(offset) - as.numeric(limit))),
         "&limit=",
         limit
@@ -106,12 +119,13 @@ searchPosteriors <- function(req, pft_id = NA, host_id = NA, offset = 0, limit =
   }
 }
 
-#################################################################################################
+################################################################################
 
 #' Download the posterior specified by the id
 #' @param id Posterior id (character)
-#' @param filename Optional filename specified if the id points to a folder instead of file (character)
-#' If this is passed with an id that actually points to a file, this name will be ignored
+#' @param filename Optional filename specified if the id points to a folder
+#'  instead of file (character). If this is passed with an id that actually
+#'  points to a file, this name will be ignored
 #' @return Posterior file specified by user
 #' @author Nihar Sanda
 #* @serializer contentType list(type="application/octet-stream")
