@@ -1,4 +1,4 @@
 contrib
 data-raw
 ^docs$
-.*venv.*
+.*venv/
