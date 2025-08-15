@@ -4,15 +4,17 @@
 \alias{preprocess_soilgrids_data}
 \title{Preprocess SoilGrids data for ensemble generation}
 \usage{
-preprocess_soilgrids_data(soil_data, verbose = FALSE)
+preprocess_soilgrids_data(soil_data, depth_layers, verbose = FALSE)
 }
 \arguments{
 \item{soil_data}{Dataframe with SoilGrids soil carbon data}
 
+\item{depth_layers}{Character vector of depth layers to process (e.g., c("0-30cm", "0-200cm"))}
+
 \item{verbose}{Logical, print detailed progress information}
 }
 \value{
-List containing processed data and CV distributions for both depths
+List containing processed data and CV distributions for requested depths
 }
 \description{
 Preprocess SoilGrids data for ensemble generation
