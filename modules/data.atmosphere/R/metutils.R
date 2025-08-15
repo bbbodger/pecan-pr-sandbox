@@ -74,7 +74,6 @@ get.vpd <- function(rh, temp) {
 
 #' Saturation vapor pressure (t2es)
 #'
-#' @md
 #' Compute saturation vapor pressure from temperature using one of the
 #' following methods:
 #' - (Default) Clausius–Clapeyron (FAO-56 style) — Recommended for most applications.
@@ -102,13 +101,14 @@ get.vpd <- function(rh, temp) {
 #' Goff, J. A., & Gratch, S. (1946). Low-pressure properties of water from −160 to 212F. Trans. ASHVE, 52, 95–122.
 #'
 #' WMO (2014) Guide to Instruments and Methods of Observation (WMO-No. 8), ch. 4.
+#' @md
 #' @author David LeBauer
 #' @export
 sat_vapor_pressure <- function(
     temp,
     temp_units = "degC",
     out_units = "kPa",
-    method = "ClausiusClapeyron") {
+    method = c("ClausiusClapeyron", "Magnus", "GoffGratch")) {
   method <- match.arg(method)
   # normalize common alias
   if (tolower(out_units) == "mb") out_units <- "hPa"

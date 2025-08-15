@@ -10,7 +10,7 @@ sat_vapor_pressure(
   temp,
   temp_units = "degC",
   out_units = "kPa",
-  method = "ClausiusClapeyron"
+  method = c("ClausiusClapeyron", "Magnus", "GoffGratch")
 )
 
 get.es(temp)
@@ -29,7 +29,19 @@ See details for references.}
 numeric vector in \code{out_units}
 }
 \description{
-Saturation vapor pressure (t2es)
+Compute saturation vapor pressure from temperature using one of the
+following methods:
+\itemize{
+\item (Default) Clausius–Clapeyron (FAO-56 style) — Recommended for most applications.
+Commonly used approximation for terrestrial ecosystem models, consistent with Penman-Monteith
+and FAO-56 (Allen et al, 1998).
+\item Magnus — More accurate in the range −40 to +50 C. Coefficients as in Alduchov & Eskridge (1996).
+\item Goff–Gratch - Highest accuracy; use when following WMO-style recommendations. Goff–Gratch 1946; WMO, 2014.
+}
+}
+\details{
+Each method uses different units internally, users can specify units
+for both inputs and outputs, with defaults "degC" and "kPa", respectively.
 }
 \references{
 Alduchov, O. A., & Eskridge, R. E. (1996). Improved Magnus Form Approximation of Saturation Vapor Pressure. J. Appl. Meteor.*, 35(4), 601–609. <doi:10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2>
