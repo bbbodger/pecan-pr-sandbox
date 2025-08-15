@@ -9,8 +9,7 @@ generate_soilgrids_ensemble(
   site_id,
   size,
   depth_layer,
-  verbose = FALSE,
-  seed = NULL
+  verbose = FALSE
 )
 }
 \arguments{
@@ -23,12 +22,13 @@ generate_soilgrids_ensemble(
 \item{depth_layer}{Depth layer ("0-30cm" or "0-200cm")}
 
 \item{verbose}{Logical, print detailed progress information}
-
-\item{seed}{Optional random seed for reproducibility}
 }
 \value{
-Vector of soil carbon values with proper uncertainty handling
+Numeric vector of soil carbon values including uncertainty, length equal to size.
 }
 \description{
-Generate soil carbon ensemble members for specific depth
+Generates ensemble members for soil carbon at specified depth layer.
+Uses site-specific uncertainty when available; otherwise integrates over coefficient of
+variation distributions fit to population data. Samples are drawn from gamma distributions
+to ensure positive, right-skewed values appropriate for soil carbon estimates.
 }
