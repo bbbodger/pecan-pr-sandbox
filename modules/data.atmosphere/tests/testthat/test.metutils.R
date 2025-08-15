@@ -69,7 +69,7 @@ test_that("sat_vapor_pressure works with different units", {
       ),
       1.227,
       tolerance = 0.01
-    ),
+    )
     expect_equal(
       sat_vapor_pressure(283.15,
         method = "Magnus",

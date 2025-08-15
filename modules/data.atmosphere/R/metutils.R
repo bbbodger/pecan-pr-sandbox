@@ -72,35 +72,43 @@ get.vpd <- function(rh, temp) {
   return(((100 - rh) / 100) * es)
 } # get.vpd
 
-#' Saturation vapor pressure
+#' Saturation vapor pressure (t2es)
 #'
 #' @md
 #' Compute saturation vapor pressure from temperature using one of the
 #' following methods:
-#' - "Magnus" — Alduchov & Eskridge (1996)
-#' - "ClausiusClapeyron" — FAO-56-style with constant L
-#' - "GoffGratch" — Goff & Gratch (1946; over liquid)
+#' - (Default) Clausius–Clapeyron (FAO-56 style) — Recommended for most applications.
+#'   Commonly used approximation for terrestrial ecosystem models, consistent with Penman-Monteith
+#'   and FAO-56 (Allen et al, 1998).
+#' - Magnus — More accurate in the range −40 to +50 C. Coefficients as in Alduchov & Eskridge (1996).
+#' - Goff–Gratch - Highest accuracy; use when following WMO-style recommendations. Goff–Gratch 1946; WMO, 2014.
 #'
 #' Each method uses different units internally, users can specify units
 #' for both inputs and outputs, with defaults "degC" and "kPa", respectively.
+#' 
 #' @param temp numeric vector of temperatures
-#' @param method c("Magnus","ClausiusClapeyron","GoffGratch")
+#' @param method one of "Magnus","ClausiusClapeyron" (default), or "GoffGratch".
+#' See details for references.
 #' @param temp_units input temperature units ("degC","K","degF"), default "degC"
 #' @param out_units output pressure units ("kPa","hPa","Pa","mb"), default "kPa"
 #' @return numeric vector in `out_units`
+#' @aliases t2es
 #'
 #' @references
-#' Alduchov & Eskridge (1996) J. Appl. Meteor. 35:601–609.
-#' Allen et al. (1998) FAO-56.
-#' Goff & Gratch (1946) Trans. ASHVE 52:95–122.
+#' Alduchov, O. A., & Eskridge, R. E. (1996). Improved Magnus Form Approximation of Saturation Vapor Pressure. J. Appl. Meteor.*, 35(4), 601–609. <doi:10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2>
 #'
+#' Allen, R. G., Pereira, L. S., Raes, D., & Smith, M. (1998). **Crop evapotranspiration – Guidelines for computing crop water requirements.** FAO Irrigation and Drainage Paper 56.
+#'
+#' Goff, J. A., & Gratch, S. (1946). Low-pressure properties of water from −160 to 212F. Trans. ASHVE, 52, 95–122.
+#'
+#' WMO (2014) Guide to Instruments and Methods of Observation (WMO-No. 8), ch. 4.
 #' @author David LeBauer
 #' @export
 sat_vapor_pressure <- function(
     temp,
-    method = c("Magnus", "ClausiusClapeyron", "GoffGratch"),
     temp_units = "degC",
-    out_units = "kPa") {
+    out_units = "kPa",
+    method = c("ClausiusClapeyron")) {
   method <- match.arg(method)
   # normalize common alias
   if (tolower(out_units) == "mb") out_units <- "hPa"
@@ -135,17 +143,11 @@ sat_vapor_pressure <- function(
     es_hPa <- 10^log10_es
     return(units::ud_convert(es_hPa, "hPa", out_units))
   }
-
-  PEcAn.logger::logger.severe(
-    method,
-    "for converting temperature to saturated vapor pressure not supported"
-  )
 }
 
 # ---- Aliases for backward-compatibility ----
 
 #' @rdname sat_vapor_pressure
-#' @md
 #' @export
 get.es <- function(temp) {
   sat_vapor_pressure(
@@ -158,16 +160,13 @@ get.es <- function(temp) {
 
 #' @rdname sat_vapor_pressure
 #' @md
+#' @details
+#' Alias for temperature→e_s convenience. Identical to `sat_vapor_pressure()`.
+#' @param temp see `sat_vapor_pressure()`
 #' @export
-SatVapPres <- function(T) {
-  sat_vapor_pressure(
-    temp = T,
-    method = "GoffGratch",
-    temp_units = "K",
-    out_units = "kPa"
-  )
+t2es <- function(temp, ...) {
+  sat_vapor_pressure(temp = temp, ...)
 }
-
 
 ##' Calculate RH from temperature and dewpoint
 ##'
@@ -274,7 +273,7 @@ sw2ppfd <- function(sw) {
 ##' Campbell and Norman (1998). Introduction to Environmental Biophysics. pg 151 'the energy content of solar radiation in the PAR waveband is 2.35 x 10^5 J/mol'
 ##' See also the chapter radiation basics (10)
 ##' Here the input is the total solar radiation so to obtain in the PAR spectrum need to multiply by 0.486
-##' This last value 0.486 is based on the approximation that PAR is 0.45-0.50 of the total radiation
+##' This is based on the approximation that PAR is 0.45-0.50 of the total radiation
 ##' This means that 1e6 / (2.35e6) * 0.486 = 2.07
 ##' 1e6 converts from mol to mu mol
 ##' 1/3600 divides the values in hours to seconds
