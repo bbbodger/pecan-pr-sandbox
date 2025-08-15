@@ -4,12 +4,21 @@
 \alias{soilgrids_ic_process}
 \title{SoilGrids Initial Conditions (IC) Utilities}
 \usage{
-soilgrids_ic_process(settings, dir, overwrite = FALSE, verbose = FALSE)
+soilgrids_ic_process(
+  settings,
+  dir,
+  depth = c(0.3, 2),
+  overwrite = FALSE,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{settings}{PEcAn settings list containing site information}
 
 \item{dir}{Output directory for IC files}
+
+\item{depth}{Numeric vector of depth values in meters. Can be single value
+or multiple values c(0.3, 2.0). Default: c(0.3, 2.0)}
 
 \item{overwrite}{Overwrite existing files? (Default: FALSE)}
 
@@ -30,10 +39,15 @@ Process SoilGrids data for initial conditions
 }
 \examples{
 \dontrun{
-# From settings object
+# Process both depths (default)
 settings <- PEcAn.settings::read.settings("pecan.xml")
-ic_files <- soilgrids_ic_process(settings, dir = "~/output/IC")  
+output_dir <- withr::local_tempdir()
+ic_files <- soilgrids_ic_process(settings, dir = output_dir)  
+
+# Process only 30cm depth
+ic_files <- soilgrids_ic_process(settings, dir = output_dir, depth = 0.3)
 }
+
 }
 \author{
 Akash
