@@ -131,7 +131,7 @@ downloadPosterior <- function(posterior_id, filename = "", req, res) {
   
   if (nrow(posterior) == 0) {
     res$status <- 404
-    return()
+    return("Posterior not found")
   } else {
     # Generate the full file path using the file_path & file_name
     filepath <- paste0(posterior$file_path, "/", posterior$file_name)
@@ -141,7 +141,7 @@ downloadPosterior <- function(posterior_id, filename = "", req, res) {
       # If no filename is provided, return 400 Bad Request error
       if (filename == "") {
         res$status <- 400
-        return()
+        return("Multiple matches. Please specify filename")
       }
       
       # Append the filename to the filepath
@@ -151,7 +151,7 @@ downloadPosterior <- function(posterior_id, filename = "", req, res) {
     # If the file doesn't exist, return 404 error
     if (!file.exists(filepath)) {
       res$status <- 404
-      return()
+      return("Posterior file not found")
     }
     
     # Read the data in binary form & return it
