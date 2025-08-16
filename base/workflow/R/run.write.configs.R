@@ -108,12 +108,13 @@ run.write.configs <- function(settings, input_design, write = TRUE,
     for (pft in names(trait.samples)) {
         pft_traits <- trait.samples[[pft]]
         ensemble.samples[[pft]] <- as.data.frame(
-        lapply(names(pft_traits), function(trait) {
-          pft_traits[[trait]][trait_sample_indices]
-        })
-  )
-  names(ensemble.samples[[pft]]) <- names(pft_traits)
-}
+          lapply(
+            names(pft_traits),
+            function(trait) pft_traits[[trait]][trait_sample_indices]
+          )
+        )
+      names(ensemble.samples[[pft]]) <- names(pft_traits)
+    }
     sa.samples <- samples$sa.samples
     runs.samples <- samples$runs.samples
     ## env.samples <- samples$env.samples
