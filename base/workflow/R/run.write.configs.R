@@ -22,7 +22,7 @@
 #' @export
 #'
 #' @author David LeBauer, Shawn Serbin, Ryan Kelly, Mike Dietze
-run.write.configs <- function(settings,input_design,write = TRUE,  
+run.write.configs <- function(settings, input_design, write = TRUE,  
                               posterior.files = rep(NA, length(settings$pfts)), 
                               overwrite = TRUE) {
   
