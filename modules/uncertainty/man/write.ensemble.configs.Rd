@@ -9,6 +9,7 @@ write.ensemble.configs(
   ensemble.samples,
   settings,
   model,
+  input_design,
   clean = FALSE,
   write.to.db = TRUE,
   restart = NULL,
