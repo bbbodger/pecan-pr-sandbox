@@ -17,13 +17,13 @@ extract_soil_gssurgo(
 \arguments{
 \item{outdir}{Output directory for writing down the netcdf file}
 
-\item{lat}{Latitude}
+\item{lat}{Latitude of center point (single numeric value)}
 
-\item{lon}{Longitude}
+\item{lon}{Longitude of center point (single numeric value)}
 
 \item{size}{Ensemble size}
 
-\item{grid_size}{Size of the spatial sampling grid (default: 3)}
+\item{grid_size}{Size of the spatial sampling grid around the center point (default: 3)}
 
 \item{grid_spacing}{Spacing between grid cells in meters (default: 10)}
 
@@ -34,6 +34,11 @@ It returns the address for the generated soil netcdf file
 }
 \description{
 Extract soil data from gssurgo
+}
+\details{
+This function takes a single lat/lon point and creates a spatial grid 
+around it for sampling soil variability. The grid_size parameter determines 
+how many grid points (grid_size x grid_size) are created around the center point.
 }
 \examples{
 \dontrun{
