@@ -292,7 +292,7 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
     soil.profiles<-simulated.soil.props %>% 
       split(.$mukey) %>%   
       purrr::map(function(soiltype.sim){
-        sizein <- (mukey_area$Area[ mukey_area$mukey == unique(soiltype.sim$mukey)[1]])*size
+        sizein <- mukey_area$Area[mukey_area$mukey == unique(soiltype.sim$mukey)] * size
         
         1:ceiling(sizein) %>%
           purrr::map(function(x){
