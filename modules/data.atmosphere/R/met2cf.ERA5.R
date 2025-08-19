@@ -17,49 +17,84 @@
 #'
 #' @return list of dataframes
 #' @export
-#'
+#' @author Hamze Dokohaki, Akash
 met2CF.ERA5<- function(lat,
-                        long,
-                        start_date,
-                        end_date,
-                        sitename,
-                        outfolder,
-                        out.xts,
-                        overwrite = FALSE,
-                        verbose = TRUE,
-                        is_ensemble = TRUE,
-                        ens_size = 10) {
+                       long,
+                       start_date,
+                       end_date,
+                       sitename,
+                       outfolder,
+                       out.xts,
+                       overwrite = FALSE,
+                       verbose = TRUE,
+                       is_ensemble = TRUE,
+                       ens_size = 10) {
   
   years <- seq(lubridate::year(start_date),
                lubridate::year(end_date),
                1
   )
-
+  
   ensemblesN <- if(is_ensemble) seq(1, ens_size) else 1
-
+  
   start_date <- paste0(lubridate::year(start_date),"-01-01")  %>% as.Date()
   end_date <- paste0(lubridate::year(end_date),"-12-31") %>% as.Date()
-  # adding RH and converting rain
+
+  era5_to_cf <- NULL
+  cf_units_map <- NULL
+  if (exists("pecan_standard_met_table", inherits = TRUE)) {
+    era5_tbl <- pecan_standard_met_table %>%
+      dplyr::filter(!is.na(era5) & nzchar(era5))
+    
+    if (nrow(era5_tbl) > 0) {
+      era5_to_cf <- setNames(era5_tbl$cf_standard_name, era5_tbl$era5)
+      cf_units_map <- setNames(era5_tbl$units, era5_tbl$cf_standard_name)
+    }
+  }
   
-  # define variable mapping 
-  cf_mapping <- c(
-    "t2m" = "air_temperature",
-    "sp" = "air_pressure", 
-    "tp" = "precipitation_flux",
-    "u10" = "eastward_wind",
-    "v10" = "northward_wind",
-    "ssrd" = "surface_downwelling_shortwave_flux_in_air",
-    "strd" = "surface_downwelling_longwave_flux_in_air",
-    "swvl1" = "volume_fraction_of_condensed_water_in_soil"
-  )
+  # fallback mappings if table is missing or empty
+  if (is.null(era5_to_cf) || length(era5_to_cf) == 0) {
+    era5_to_cf <- c(
+      "t2m" = "air_temperature",
+      "sp" = "air_pressure",
+      "tp" = "precipitation_flux",
+      "u10" = "eastward_wind",
+      "v10" = "northward_wind",
+      "ssrd" = "surface_downwelling_shortwave_flux_in_air",
+      "strd" = "surface_downwelling_longwave_flux_in_air",
+      "swvl1" = "volume_fraction_of_condensed_water_in_soil"
+    )
+  }
+  
+  if (is.null(cf_units_map) || length(cf_units_map) == 0) {
+    cf_units_map <- c(
+      "air_temperature" = "K",
+      "air_pressure" = "Pa",
+      "precipitation_flux" = "kg m-2 s-1",
+      "eastward_wind" = "m s-1",
+      "northward_wind" = "m s-1",
+      "surface_downwelling_shortwave_flux_in_air" = "W m-2",
+      "surface_downwelling_longwave_flux_in_air" = "W m-2",
+      "specific_humidity" = "1",
+      "volume_fraction_of_condensed_water_in_soil" = "1"
+    )
+  }
   
   out.new <- ensemblesN %>%
     purrr::map(function(ensi) {
       tryCatch({
         ens <- out.xts[[ensi]]
-        # Solar radation conversions
-        #https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513
+        if (is.null(ens) || nrow(ens) == 0) {
+          PEcAn.logger::logger.warn(paste("Empty ensemble", ensi))
+          return(NULL)
+        }
+        
         available_vars <- colnames(ens)
+        native_vars <- intersect(names(era5_to_cf), available_vars)
+        if (!length(native_vars)) {
+          PEcAn.logger::logger.warn("No mappable ERA5 vars in ensemble member.")
+          return(NULL)
+        }
         # detect timestep dynamically
         time_diffs <- diff(as.numeric(zoo::index(ens)))
         if (length(time_diffs) > 0) {
@@ -80,27 +115,26 @@ met2CF.ERA5<- function(lat,
         if ("tp" %in% available_vars) {
           ens[, "tp"] <- (as.numeric(ens[, "tp"]) * 1000) / timestep_seconds
         }
-        #Adopted from weathermetrics/R/moisture_conversions.R
+
         # relative and specific humidity (only if all required vars present)
         specific_humidity <- NULL
         if (all(c("t2m", "d2m", "sp") %in% available_vars)) {
-          t <-
-            PEcAn.utils::ud_convert(ens[, "t2m"] %>% as.numeric(), "K", "degC")
-          dewpoint  <-
-            PEcAn.utils::ud_convert(ens[, "d2m"] %>% as.numeric(), "K", "degC")
-          beta <- (112 - (0.1 * t) + dewpoint) / (112 + (0.9 * t))
-          relative.humidity <- beta ^ 8
-          #specific humidity
-          specific_humidity <-
-            PEcAn.data.atmosphere::rh2qair(relative.humidity,
-                                           ens[, "t2m"] %>% as.numeric(),
-                                           ens[, "sp"] %>% as.numeric()) # Pressure in Pa
+          # Vectorized RH via Magnus formula over water (Kelvin inputs)
+          T_k  <- as.numeric(ens[, "t2m"])   # K
+          Td_k <- as.numeric(ens[, "d2m"])   # K
+          T_c  <- T_k  - 273.15
+          Td_c <- Td_k - 273.15
+          es <- 6.112 * exp((17.62 * T_c)  / (243.12 + T_c))    # hPa
+          e  <- 6.112 * exp((17.62 * Td_c) / (243.12 + Td_c))   # hPa
+          rh_prop <- pmin(pmax(e / es, 0), 1)                   # [0,1]
+          
+          specific_humidity <- PEcAn.data.atmosphere::rh2qair(rh_prop, T_k, as.numeric(ens[, "sp"]))
         }
         
         # select available ERA5 variables and convert to CF naming
-        available_era5_vars <- intersect(names(cf_mapping), available_vars)
+        available_era5_vars <- intersect(names(era5_to_cf), available_vars)
         ens_cf <- ens[, available_era5_vars, drop = FALSE]
-        colnames(ens_cf) <- cf_mapping[available_era5_vars]
+        colnames(ens_cf) <- era5_to_cf[available_era5_vars]
         if (!is.null(specific_humidity)) {
           specific_humidity_xts <- xts::xts(specific_humidity, order.by = zoo::index(ens))
           colnames(specific_humidity_xts) <- "specific_humidity"
@@ -126,20 +160,16 @@ met2CF.ERA5<- function(lat,
     return(NULL)
   }
   
-  # define units mapping for CF variables
-  cf_units_mapping <- c(
-    "air_temperature" = "K",
-    "air_pressure" = "Pa", 
-    "precipitation_flux" = "kg m-2 s-1",
-    "eastward_wind" = "m s-1",
-    "northward_wind" = "m s-1",
-    "surface_downwelling_shortwave_flux_in_air" = "W m-2",
-    "surface_downwelling_longwave_flux_in_air" = "W m-2",
-    "specific_humidity" = "1",
-    "volume_fraction_of_condensed_water_in_soil" = "1"
-  )
-  cf_var_names = colnames(out.new[[1]])
-  cf_var_units = cf_units_mapping[cf_var_names]
+  cf_var_names <- colnames(out.new[[1]])
+  cf_var_units <- purrr::map_chr(cf_var_names, function(nm) {
+    u <- unname(cf_units_map[nm])
+    if (length(u) == 0 || is.na(u)) {
+      if (identical(nm, "specific_humidity")) return("1")  # unitless (mass ratio)
+      return(NA_character_)
+    }
+    as.character(u)
+  })
+  names(cf_var_units) <- cf_var_names
   
   results_list <-  ensemblesN %>%
     purrr::map(function(i) {
@@ -162,7 +192,7 @@ met2CF.ERA5<- function(lat,
         dbfile.name = paste0("ERA5.", i),
         stringsAsFactors = FALSE
       )
-
+      
       if (is_ensemble) {
         identifier <- paste("ERA5", sitename, i, sep = "_") 
       } else {
@@ -185,14 +215,14 @@ met2CF.ERA5<- function(lat,
       years %>%
         purrr::map(function(year) {
           identifier.file <- paste("ERA5", i, year, sep = ".")
-
+          
           flname <-file.path(ensemble_folder, paste(identifier.file, "nc", sep = "."))
           # Spliting it for this year
           data.for.this.year.ens <- out.new[[i]]
           data.for.this.year.ens <- data.for.this.year.ens[year %>% as.character]
           
           if (nrow(data.for.this.year.ens) == 0) return(NULL)
-
+          
           time_vals <- as.numeric(zoo::index(data.for.this.year.ens))
           time_dim <- ncdf4::ncdim_def(
             name = "time",
@@ -207,8 +237,6 @@ met2CF.ERA5<- function(lat,
           nc_var_list <- purrr::map2(cf_var_names,
                                      cf_var_units,
                                      ~ ncdf4::ncvar_def(.x, .y, list(time_dim, lat_dim, lon_dim), missval = NA_real_))
-          #results$dbfile.name <- flname
-          
           
           if (!file.exists(flname) || overwrite) {
             tryCatch({
