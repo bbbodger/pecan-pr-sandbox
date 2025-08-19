@@ -80,3 +80,6 @@ point.data <- extract.nc.ERA5(
 
 }
 }
+\author{
+Dongchen Zhang, Akash
+}
