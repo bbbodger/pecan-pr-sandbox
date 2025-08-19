@@ -76,8 +76,6 @@ point.data <- extract.nc.ERA5(
   verbose = TRUE
 )
 
- purrr::map(~xts::apply.daily(.x, mean))
-
 }
 }
 \author{
