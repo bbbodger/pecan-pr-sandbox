@@ -21,7 +21,7 @@
 #'    lon     <- -80
 #'    PEcAn.data.land::extract_soil_gssurgo(outdir, lat, lon)
 #' }
-#' @author Hamze Dokoohaki and Akash
+#' @author Hamze Dokoohaki, Akash
 #' @export
 #' 
 extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spacing=100, depths=c(0.15,0.30,0.60)){
@@ -146,6 +146,7 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
       "chorizon.hzdepb_r",  
       "chorizon.om_r",      
       "chorizon.dbthirdbar_r",  # bulk density at 1/3 bar (field capacity);which is the standard field capacity bulk density measurement
+      "chfrags.fragvol_r",
       "component.comppct_r")) 
   
   # Area-weighted aggregation by mukey and horizon depth
@@ -157,31 +158,32 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
       claytotal_r = weighted.mean(claytotal_r, comppct_r, na.rm = TRUE),
       om_r = weighted.mean(om_r, comppct_r, na.rm = TRUE),
       dbthirdbar_r = weighted.mean(dbthirdbar_r, comppct_r, na.rm = TRUE),
+      fragvol_r = weighted.mean(fragvol_r, comppct_r, na.rm = TRUE),
       .groups = "drop"
     )
   
   soilprop.new <- soilprop.weighted %>%
     dplyr::arrange(.data$hzdept_r) %>%
     dplyr::select(
-      fraction_of_sand_in_soil = "sandtotal_r",
-      fraction_of_silt_in_soil = "silttotal_r",
-      fraction_of_clay_in_soil = "claytotal_r",
-      soil_depth = "hzdept_r",
-      soil_depth_bottom = "hzdepb_r",
-      organic_matter_pct = "om_r",
-      bulk_density = "dbthirdbar_r",
+      fraction_of_sand_in_soil = "sandtotal_r", # %
+      fraction_of_silt_in_soil = "silttotal_r", # %
+      fraction_of_clay_in_soil = "claytotal_r", # %
+      soil_depth = "hzdept_r", # cm
+      soil_depth_bottom = "hzdepb_r", # cm
+      organic_matter_pct = "om_r", # %
+      bulk_density = "dbthirdbar_r", # g/cm3
+      coarse_fragment_pct = "fragvol_r", # %
       mukey = "mukey") %>%
     dplyr::mutate(
-      dplyr::across(c(dplyr::starts_with("fraction_of"), "soil_depth", "soil_depth_bottom"), 
+      dplyr::across(c(dplyr::starts_with("fraction_of"), "coarse_fragment_pct"), 
                     ~ . / 100),
       horizon_thickness_cm = soil_depth_bottom - soil_depth,
-      # Van Bemmelen factor conversion: OM to SOC
-      soc_percent = organic_matter_pct / 1.724,
-      # SOC(kg/m2) =  SOC(frac) × bulk density(kg/m3) × depth(m)
-      soil_organic_carbon_stock =
-        PEcAn.utils::ud_convert(horizon_thickness_cm, "cm", "m") *
-        (soc_percent / 100) *
-        PEcAn.utils::ud_convert(bulk_density, "g cm-3", "kg m-3")
+      soil_organic_carbon_stock = PEcAn.data.land::soc2ocs(
+        soc_percent = PEcAn.data.land::om2soc(organic_matter_pct),
+        bulk_density = bulk_density,
+        thickness = horizon_thickness_cm,
+        coarse_fraction = coarse_fragment_pct
+      )
     ) %>%
     dplyr::filter(stats::complete.cases(.))
   if(nrow(soilprop.new) == 0) {
