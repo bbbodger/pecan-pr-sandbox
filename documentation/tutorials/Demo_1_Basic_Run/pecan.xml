@@ -15,13 +15,7 @@
   </pft>
  </pfts> 
  <ensemble>
-   <size>1</size>
    <variable>NPP</variable>
-   <samplingspace>
-   <parameters>
-    <method>uniform</method>
-   </parameters>
-   </samplingspace>
   </ensemble>
  <model>
   <type>SIPNET</type>
