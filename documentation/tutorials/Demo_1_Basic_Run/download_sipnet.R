@@ -51,3 +51,15 @@ if(status == 1){
 } else {
     PEcAn.logger::logger.error("SIPNET installation has failed with status:", status)
 }
+
+
+# Download demo .clim file
+climfile <- "https://gist.githubusercontent.com/dlebauer/8aea1146dc8f915e1dea7a7335d7ec24/raw/4cc127098b0b42a0d428fc7de580e17aafca4e8b/AMF_US-NR1_BASE_HH_23-5.2004-01-01.2004-12-31.clim"
+clim_dest <- file.path(dbfiles_dir, basename(climfile))
+if (!file.exists(clim_dest)) {
+  download.file(
+    url = climfile,
+    destfile = clim_dest,
+    mode = "wb"
+  )
+}
