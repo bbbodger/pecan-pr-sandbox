@@ -163,10 +163,8 @@ dir.create(settings$outdir, recursive = TRUE, showWarnings = FALSE)
 
 This step generates the model-specific configuration files that will be used to run the ecosystem model. The process involves:
 
-1. Disabling database operations: Set `settings$database <- NULL`
-2. Disabling write operations: Set `settings$write <- FALSE`
-3. Setting PFT posterior files: Point to the Plant Functional Type parameter files
-4. Generating configs: Use `runModule.run.write.configs()`
+1. Disabling database write operations because we are not using a database
+2. Generating SIPNET configuration files using the `runModule.run.write.configs()` function.
 
 ```{r write-configs}
 settings$database <- NULL # Disable database operations for this demo
