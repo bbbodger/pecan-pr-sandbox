@@ -85,7 +85,6 @@ for (pkg in packages) {
 }
 
 logger("Creating index page")
-
 built_pkg_dirs <- list.dirs(output_dir, recursive=FALSE, full.names = FALSE)
 before_text <- c(
   '<!DOCTYPE html>',
