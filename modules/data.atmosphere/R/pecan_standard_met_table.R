@@ -11,7 +11,7 @@ pecan_standard_met_table <- tibble::tribble(
   "mole_fraction_of_carbon_dioxide_in_air"                , "1"           ,        FALSE,  NA                  , NA             , NA       , NA      , "CO2"              , NA    ,
   "moisture_content_of_soil_layer"                        , "kg m-2"      ,        FALSE,  NA                  , NA             , NA       , NA      , NA                 , NA    ,
   "soil_temperature"                                      , "K"           ,        FALSE,  "soilT"             , NA             , NA       , NA      , "TS1 *(NOT DONE)*" , NA    ,
-  "relative_humidity"                                     , "1"           ,        FALSE,  "relative_humidity" , "rhurs"        , NA       , "rhum"  , "RH"               , NA    ,
+  "relative_humidity"                                     , "%"           ,        FALSE,  "relative_humidity" , "rhurs"        , NA       , "rhum"  , "RH"               , NA    ,
   "specific_humidity"                                     , "1"           ,         TRUE,  "specific_humidity" , NA             , "qair"   , "shum"  , "CALC(RH)"         , NA    ,
   "water_vapor_saturation_deficit"                        , "Pa"          ,        FALSE,  "VPD"               , NA             , NA       , NA      , "VPD *(NOT DONE)*" , NA    ,
   "surface_downwelling_longwave_flux_in_air"              , "W m-2"       ,         TRUE,  "same"              , "rldsAdjust"   , "lwdown" , "dlwrf" , "Rgl"              , "strd",
