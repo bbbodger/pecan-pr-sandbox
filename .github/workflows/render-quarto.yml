@@ -13,9 +13,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build PEcAn depends Docker image
+        run: |
+          docker build -t pecan/depends:latest -f docker/depends/Dockerfile .
+
       - name: Build PEcAn base Docker image
         run: |
-          docker build -t pecan-base-ci:latest -f docker/base/Dockerfile .
+          docker build --build-arg PARENT_IMAGE=pecan/depends --build-arg IMAGE_VERSION=latest -t pecan-base-ci:latest -f docker/base/Dockerfile .
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
