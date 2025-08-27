@@ -5,9 +5,10 @@
 #' \code{write.config.*} function for your specific ecosystem model
 #' (e.g. write.config.ED2, write.config.SIPNET).
 #'
-#' @param input_design the input indices for samples 
+#'
 #' @param settings a PEcAn settings list
 #' @param write should the runs be written to the database?
+#' @param input_design the input indices for samples 
 #' @param posterior.files Filenames for posteriors for drawing samples for ensemble and sensitivity
 #'    analysis (e.g. post.distns.Rdata, or prior.distns.Rdata)
 #' @param overwrite logical: Replace output files that already exist?
