@@ -54,7 +54,7 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
   # Create raster template
   raster_template <- terra::rast(
     xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
-    resolution = grid_spacing, crs = proj_crs
+    resolution = grid_spacing, crs = proj_crs$wkt
   )
   grid_coords <- terra::crds(raster_template)
   
