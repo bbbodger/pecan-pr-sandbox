@@ -206,7 +206,7 @@ run.write.configs <- function(settings, input_design, write = TRUE,
   PEcAn.logger::logger.info("parameter values for runs in ", file.path(settings$outdir, "samples.RData"))
   options(scipen = scipen)
   invisible(settings)
-  return(invisible(settings))
+  return(settings)
 }
 
   

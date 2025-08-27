@@ -224,7 +224,7 @@ get.ensemble.samples <- function(ensemble.size, pft.samples, env.samples,
 ##' @importFrom rlang .data
 ##' @export
 ##' @author David LeBauer, Carl Davidson, Hamze Dokoohaki
-write.ensemble.configs <- function(defaults, ensemble.samples, settings, model,input_design,
+write.ensemble.configs <- function(defaults, ensemble.samples, settings, model, input_design ,
                                    clean = FALSE, write.to.db = TRUE, restart = NULL, samples = NULL, rename = FALSE) {
   
   
