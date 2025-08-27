@@ -1,13 +1,15 @@
 #' Generate model-specific run configuration files for one or more PEcAn runs
 #'
+#' @param input_design the input indices for samples 
 #' @param settings a PEcAn Settings or MultiSettings object
 #' @param overwrite logical: Replace config files if they already exist?
 #' @return A modified settings object, invisibly
 #' @importFrom dplyr %>%
 #' @export
+
+
 runModule.run.write.configs <- function(settings, overwrite = TRUE, input_design = NULL) {
-
-
+  
   if (PEcAn.settings::is.MultiSettings(settings)) {
     if (overwrite && file.exists(file.path(settings$rundir, "runs.txt"))) {
       PEcAn.logger::logger.warn("Existing runs.txt file will be removed.")
