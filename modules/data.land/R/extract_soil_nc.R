@@ -271,7 +271,7 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
           } else {
             shape <- (soc_mean^2) / (soc_sd^2)
             rate <- soc_mean / (soc_sd^2)
-            simulated_soc <- pmax(stats::rgamma(size, shape=shape, rate=rate), 0)
+            simulated_soc <- stats::rgamma(size, shape=shape, rate=rate)
           }
           
           simulated.soil<-simulated.soil %>%
