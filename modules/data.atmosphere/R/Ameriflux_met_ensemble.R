@@ -1,15 +1,17 @@
-#' @title Generate AmeriFlux meteorological ensembles
-#' @description Downloads AmeriFlux data, applies ERA5 fallback for missing radiation and soil moisture,
+#' Generate AmeriFlux meteorological ensembles
+#'
+#' Downloads AmeriFlux data, applies ERA5 fallback for missing radiation and soil moisture,
 #' performs gap-filling, and generates ensembles.
 #' This function provides a complete pipeline from raw AmeriFlux data to CF-compliant
 #' ensemble meteorological files.
+#'
 #' @param site_id character. AmeriFlux site identifier (e.g, "US-Ha1")
 #' The 'SITE_ID' field in \href{http://ameriflux.lbl.gov/sites/site-list-and-pages/}{list of Ameriflux sites}
 #' @param start_date character or date. Start date in "YYYY-MM-DD" format
 #' @param end_date character or date. End date in "YYYY-MM-DD" format
 #' @param outfolder character. Output directory path for ensemble files
-#' @param username character. AmeriFlux username for data access. 
-#' @param useremail character. Email address for AmeriFlux authentication (must contain "@")
+#' @param ameriflux_username character. AmeriFlux username for data access.
+#' @param ameriflux_useremail character. Email address for AmeriFlux authentication (must contain "@")
 #' @param overwrite logical. Whether to overwrite existing files. Default: FALSE
 #' @param verbose logical. Whether to print detailed logs.  Default: FALSE
 #' @param format data frame or List. format specifications for CF conversion. Default: NULL
@@ -30,8 +32,8 @@
 #'   start_date = "2010-01-01",
 #'   end_date = "2010-12-31",
 #'   outfolder = "/path/to/output",
-#'   username = "your_username",
-#'   useremail = "your.email@domain.com", 
+#'   ameriflux_username = "your_username",
+#'   ameriflux_useremail = "your.email@domain.com", 
 #'   format = format,
 #'   era5_user = "your_cds_user",
 #'   era5_key = "your_cds_api_key",
@@ -47,8 +49,8 @@ AmeriFlux_met_ensemble <- function(site_id,
                                    start_date,
                                    end_date, 
                                    outfolder,
-                                   username = "pecan", 
-                                   useremail = "@",
+                                   ameriflux_username = "pecan", 
+                                   ameriflux_useremail = "@",
                                    overwrite = FALSE, 
                                    verbose = FALSE, 
                                    format = NULL,
@@ -111,8 +113,8 @@ AmeriFlux_met_ensemble <- function(site_id,
           outfolder = dirs$amf_downloads,
           start_date = start_date,
           end_date = end_date,
-          username = username,
-          useremail = useremail,
+          ameriflux_username = ameriflux_username,
+          ameriflux_useremail = ameriflux_useremail,
           overwrite = overwrite,
           verbose = verbose,
           ...
