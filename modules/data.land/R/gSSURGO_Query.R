@@ -18,21 +18,22 @@
 #'   - `l` = low value  
 #'   - `h` = high value  
 #'
-#' **Commonly queried fields and units** (see NRCS gSSURGO "Tables and Columns Report" for full list):
+#' **Commonly queried fields and units** (see NRCS gSSURGO ["Tables and Columns Report"](https://www.nrcs.usda.gov/sites/default/files/2022-08/SSURGO-Metadata-Tables-and-Columns-Report.pdf) 
+#' for full list):
 #'
-#' | Field                | Description                        | Units        |
-#' |----------------------|------------------------------------|--------------|
-#' | `cec7_r`      | Cation exchange capacity at pH 7          | cmol(+)/kg   |
-#' | `sandtotal_r` | Total sand (<2 mm fraction)               | %            |
-#' | `silttotal_r` | Total silt (<2 mm fraction)               | %            |
-#' | `claytotal_r` | Total clay (<0.002 mm fraction)           | %            |
-#' | `om_r`        | Organic matter (<2 mm soil)               | %            |
-#' | `hzdept_r`    | Horizon top depth                         | cm           |
-#' | `frag3to10_r` | Rock fragments 3–10 in                    | % (by weight)|
-#' | `dbovendry_r` | Bulk density, oven dry                    | g/cm³        |
-#' | `ph1to1h2o_r` | Soil pH (1:1 H2O)                         | pH (unitless)|
-#' | `cokey`       | Component key (identifier)                | —            |
-#' | `chkey`       | Horizon key (identifier)                  | —            |
+#' | Field                  | Description                               | Units        |
+#' |------------------------|-------------------------------------------|--------------|
+#' | `chorizon.cec7_r`      | Cation exchange capacity at pH 7          | cmol(+)/kg   |
+#' | `chorizon.sandtotal_r` | Total sand (<2 mm fraction)               | %            |
+#' | `chorizon.silttotal_r` | Total silt (<2 mm fraction)               | %            |
+#' | `chorizon.claytotal_r` | Total clay (<0.002 mm fraction)           | %            |
+#' | `chorizon.om_r`        | Organic matter (<2 mm soil)               | %            |
+#' | `chorizon.hzdept_r`    | Horizon top depth                         | cm           |
+#' | `chfrags.fragvol_r`    | Rock fragments                            | % (by volume)|
+#' | `chorizon.dbthirdbar_r`| Bulk density at field capacity            | g/cm³        |
+#' | `chorizon.ph1to1h2o_r` | Soil pH (1:1 H2O)                         | pH (unitless)|
+#' | `chorizon.cokey`       | Component key (identifier)                | —            |
+#' | `chorizon.chkey`       | Horizon key (identifier)                  | —            |
 #'
 #' **API stability:** The NRCS occasionally modifies the API schema. If queries fail,
 #'   adjustments may be required here to align with the updated structure. 
