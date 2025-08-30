@@ -407,7 +407,7 @@ met_temporal_downscale.Gaussian_ensemble <- function(in.path, in.prefix, outfold
               } else {
                 adjusted_rh <- sour[x]
               }
-              dwnsc_day[n] <- truncnorm::rtruncnorm(1, a = 0, b = 1, mean = adjusted_rh, sd = base_sd) 
+              dwnsc_day[n] <- truncnorm::rtruncnorm(1, a = 0, b = 100, mean = adjusted_rh, sd = base_sd) 
             } else {
               dwnsc_day[n] <- stats::rnorm(1, mean = sour[x], sd = stats::sd(a[lowday:highday], na.rm = TRUE))
             }
