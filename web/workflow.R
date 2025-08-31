@@ -11,22 +11,15 @@
 # ----------------------------------------------------------------------
 # Load required libraries
 # ----------------------------------------------------------------------
-
-setwd("pecan/base/workflow")
-# In R, from the uncertainty directory:
-devtools::document()
-devtools::load_all()
-
 library("PEcAn.all")
+
 
 # --------------------------------------------------
 # get command-line arguments
 args <- get_args()
-#args <- list(continue = FALSE)
 
 # make sure always to call status.end
 options(warn = 1)
-
 options(error = quote({
   try(PEcAn.utils::status.end("ERROR"))
   try(PEcAn.remote::kill.tunnel(settings))
@@ -43,8 +36,8 @@ options(error = quote({
 PEcAn.all::pecan_version()
 
 # Open and read in settings file for PEcAn run.
-settings <- PEcAn.settings::read.settings("/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/pecan_updated.xml")
-settings<- settings[1]
+settings <- PEcAn.settings::read.settings(args$settings)
+
 # Check for additional modules that will require adding settings
 if ("benchmarking" %in% names(settings)) {
   library(PEcAn.benchmark)
@@ -67,7 +60,6 @@ if ("sitegroup" %in% names(settings)) {
   settings$sitegroup <- NULL
 }
 
-
 # Update/fix/check settings.
 # Will only run the first time it's called, unless force=TRUE
 settings <-
@@ -75,6 +67,7 @@ settings <-
 
 # Write pecan.CHECKED.xml
 PEcAn.settings::write.settings(settings, outputfile = "pecan.CHECKED.xml")
+
 # start from scratch if no continue is passed in
 status_file <- file.path(settings$outdir, "STATUS")
 if (args$continue && file.exists(status_file)) {
@@ -82,31 +75,31 @@ if (args$continue && file.exists(status_file)) {
 }
 
 # Do conversions
-#settings <- PEcAn.workflow::do_conversions(settings)
+settings <- PEcAn.workflow::do_conversions(settings)
 
 # Query the trait database for data and priors
-#if (PEcAn.utils::status.check("TRAIT") == 0) {
-# PEcAn.utils::status.start("TRAIT")
-# settings <- PEcAn.workflow::runModule.get.trait.data(settings)
-# PEcAn.settings::write.settings(settings,
-#                                outputfile = "pecan.TRAIT.xml"
-# )
-# PEcAn.utils::status.end()
-#} else if (file.exists(file.path(settings$outdir, "pecan.TRAIT.xml"))) {
-#  settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.TRAIT.xml"))
-#}
+if (PEcAn.utils::status.check("TRAIT") == 0) {
+  PEcAn.utils::status.start("TRAIT")
+  settings <- PEcAn.workflow::runModule.get.trait.data(settings)
+  PEcAn.settings::write.settings(settings,
+                                 outputfile = "pecan.TRAIT.xml"
+  )
+  PEcAn.utils::status.end()
+} else if (file.exists(file.path(settings$outdir, "pecan.TRAIT.xml"))) {
+  settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.TRAIT.xml"))
+}
 
 
 # Run the PEcAn meta.analysis
-#if (!is.null(settings$meta.analysis)) {
-#  if (PEcAn.utils::status.check("META") == 0) {
-#    PEcAn.utils::status.start("META")
-#    PEcAn.MA::runModule.run.meta.analysis(settings)
-#    PEcAn.utils::status.end()
-#  }
-#}
+if (!is.null(settings$meta.analysis)) {
+  if (PEcAn.utils::status.check("META") == 0) {
+    PEcAn.utils::status.start("META")
+    PEcAn.MA::runModule.run.meta.analysis(settings)
+    PEcAn.utils::status.end()
+  }
+}
 
-#Write model specific configs
+# Write model specific configs
 if (PEcAn.utils::status.check("CONFIG") == 0) {
   PEcAn.utils::status.start("CONFIG")
   settings <-
@@ -122,14 +115,6 @@ if ((length(which(commandArgs() == "--advanced")) != 0)
   PEcAn.utils::status.start("ADVANCED")
   q()
 }
-
-
-
-
-
-
-
-
 
 # Start ecosystem model runs
 if (PEcAn.utils::status.check("MODEL") == 0) {
@@ -201,7 +186,6 @@ if ("benchmarking" %in% names(settings)
     })
   PEcAn.utils::status.end()
 }
-
 
 # Pecan workflow complete
 if (PEcAn.utils::status.check("FINISHED") == 0) {
