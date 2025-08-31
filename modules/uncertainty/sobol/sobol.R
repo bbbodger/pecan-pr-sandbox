@@ -1,3 +1,5 @@
+#loading libs
+library("PEcAn.all")
 library(PEcAn.settings)
 library(PEcAn.workflow)
 library(PEcAn.logger)
@@ -11,63 +13,14 @@ library(assertthat)
 library(lubridate)
 library(sensitivity)
 library(PEcAn.SIPNET)
-# File paths
 
+#reading XML 
 
-
-# Site info
-site_ids <- c("1000004924")
-setwd("pecan/base/workflow")
-devtools::document()
-devtools::load_all()
-
-
-#!/usr/bin/env Rscript
-#-------------------------------------------------------------------------------
-# Copyright (c) 2012 University of Illinois, NCSA.
-# All rights reserved. This program and the accompanying materials
-# are made available under the terms of the
-# University of Illinois/NCSA Open Source License
-# which accompanies this distribution, and is available at
-# http://opensource.ncsa.illinois.edu/license.html
-#-------------------------------------------------------------------------------
-
-# ----------------------------------------------------------------------
-# Load required libraries
-# ----------------------------------------------------------------------
-
-
-
-library("PEcAn.all")
-
-# --------------------------------------------------
-# get command-line arguments
-args <- get_args()
 args <- list(continue = FALSE)
 
-# make sure always to call status.end
-options(warn = 1)
-
-options(error = quote({
-  try(PEcAn.utils::status.end("ERROR"))
-  try(PEcAn.remote::kill.tunnel(settings))
-  if (!interactive()) {
-    q(status = 1)
-  }
-}))
-
-
-
-# ----------------------------------------------------------------------
-# PEcAn Workflow
-# ----------------------------------------------------------------------
-
-# Report package versions for provenance
-PEcAn.all::pecan_version()
-
-# Open and read in settings file for PEcAn run.
 settings <- PEcAn.settings::read.settings("/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/pecan_updated.xml")
-# Check for additional modules that will require adding settings
+settings<-settings[1]
+
 if ("benchmarking" %in% names(settings)) {
   library(PEcAn.benchmark)
   settings <- papply(settings, read_settings_BRR)
@@ -89,7 +42,6 @@ if ("sitegroup" %in% names(settings)) {
   settings$sitegroup <- NULL
 }
 
-
 # Update/fix/check settings.
 # Will only run the first time it's called, unless force=TRUE
 settings <-
@@ -97,7 +49,6 @@ settings <-
 
 # Write pecan.CHECKED.xml
 PEcAn.settings::write.settings(settings, outputfile = "pecan.CHECKED.xml")
-
 # start from scratch if no continue is passed in
 status_file <- file.path(settings$outdir, "STATUS")
 if (args$continue && file.exists(status_file)) {
@@ -106,181 +57,160 @@ if (args$continue && file.exists(status_file)) {
 
 
 
+#conducting the sampling 
 
-if (PEcAn.utils::status.check("CONFIG") == 0) {
-  #PEcAn.utils::status.start("CONFIG")
-  settings <-
-    PEcAn.workflow::runModule.run.write.configs(settings)
-  PEcAn.settings::write.settings(settings, outputfile = "pecan.CONFIGS.xml")
-  PEcAn.utils::status.end()
-} else if (file.exists(file.path(settings$outdir, "pecan.CONFIGS.xml"))) {
-  settings <- PEcAn.settings::read.settings(file.path(settings$outdir, "pecan.CONFIGS.xml"))
+
+
+ensemble_size <- settings$ensemble$size
+input_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings,ensemble_size=ensemble_size)
+input_design
+
+
+
+#convverting input indices to input
+
+
+
+# Sample inputs 
+ipsamples <- list()
+
+input_tags <- names(settings$run$inputs)
+input_tags
+for (input_tag in input_tags) {
+  if (input_tag %in% colnames(input_design)) {
+    input_paths <- settings$run$inputs[[input_tag]]$path  # List of all possible paths
+    if (!is.list(input_paths) || length(input_paths) < max(input_design[[input_tag]])) {
+      stop(paste("Not enough paths for", input_tag, "- max index:", max(input_design[[input_tag]]), "but only", length(input_paths), "available"))
+    }
+    input_indices <- input_design[[input_tag]]
+    ipsamples[[input_tag]] <- list(
+      ipsamples = lapply(input_indices, function(idx) input_paths[[idx]])  # Select paths by index
+    )
+  } else {
+    message(paste("No column for", input_tag, "in input_design - skipping sampling"))
+  }
+}
+#input file path to inputs
+
+
+
+
+# extracting parameter 
+
+
+samples.file <- file.path(settings$outdir, "samples.Rdata")
+if (file.exists(samples.file)) {
+  samples <- new.env()
+  load(samples.file, envir = samples) ## loads ensemble.samples, trait.samples, sa.samples, runs.samples, env.samples
+  trait.samples <- samples$trait.samples
+  
+  
+  trait_sample_indices <- input_design[["param"]]
+  ensemble.samples <- list()
+  for (pft in names(trait.samples)) {
+    pft_traits <- trait.samples[[pft]]
+    ensemble.samples[[pft]] <- as.data.frame(
+      lapply(
+        names(pft_traits),
+        function(trait) pft_traits[[trait]][trait_sample_indices]
+      )
+    )
+    names(ensemble.samples[[pft]]) <- names(pft_traits)
+  }
+  sa.samples <- samples$sa.samples
+  runs.samples <- samples$runs.samples
+  ## env.samples <- samples$env.samples
+  
+} else {
+  PEcAn.logger::logger.error(samples.file, "not found, this file is required by the run.write.configs function")
 }
 
-if ((length(which(commandArgs() == "--advanced")) != 0)
-    && (PEcAn.utils::status.check("ADVANCED") == 0)) {
-  PEcAn.utils::status.start("ADVANCED")
-  q()
-}
-
-  
-ensemble_size=50
-  
-input_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings[1],ensemble_size = ensemble_size)
-  
-  input_design
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-site_ids<-list()
-for (i in 1 : length(settings$run)){
-  site_ids[i] <- settings[i]$run$site$id
-  
-}
-  length(settings$run)
-base_dir <- "/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/outdir"
-pecan_settings_path <- "/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/pecan_updated.xml"
-samples_path <- "/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/outdir/samples.Rdata"
-output_path <- "/projectnb/dietzelab/bthomas/pecan_runs/sipnet_test/outdir"
-
-model_output_file <- file.path(output_path, "sobol1500fixed_site4924.csv")
-
-
-load(samples_path)
-
-#input_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings[1],ensemble_size=ensemble_size)
-
-#settings <- PEcAn.settings::read.settings(pecan_settings_path)
-#settings <- PEcAn.settings::prepare.settings(settings)
-settings$host <- list(name = "localhost")
-
-model_write_config <- paste("write.config.", settings$model$type, sep = "")
-PEcAn.utils::load.modelpkg(settings$model$type)
-
-# ------------------------------------------------------------------------------
-# 1. Generate Sobol samples
-# ------------------------------------------------------------------------------
-load(samples_path)
+ensemble.samples
 all_params <- ensemble.samples$temperate.deciduous.HPDA
-X1 <- all_params[1:50, ]
-X2 <- all_params[51:100, ]
+
+
+
+#creating sobol object
+
+
+
+
+
+param_count <- ncol(all_params)  # Number of parameters (e.g., 13)
+param_count
+N_small <- ceiling(50 / (param_count + 2))  # ~2 for 50 rows; adjust as needed
+X1_small <- all_params[1:(N_small), ]  # First N rows
+X2_small <- all_params[(N_small + 1):(2 * N_small), ]  # Next N rows
+sobol_obj <- soboljansen(model = NULL, X1 = X1_small, X2 = X2_small)
+
+U <- sobol_obj$X
+
+length(U)
+
+
+
+
+
+
+X1 <- all_params[1:25, ]
+X2 <- all_params[26:50, ]
 sobol_obj <- soboljansen(model = NULL, X1 = X1, X2 = X2)
 U <- sobol_obj$X
-# ------------------------------------------------------------------------------
-# 2. Run SIPNET forward model with U
-# --------------------------------------------s----------------------------------
-fwd_mul <- function(U, itr = 1) {
-  itr=1
-  gen_pars <- U[, !grepl("_site", colnames(U)), drop = FALSE]
-  y_list <- list()
-  for (i in seq_along(site_ids)) {
-    i=1
-    site_ics <- U[, grepl(paste0("_site", i, "$"), colnames(U)), drop = FALSE]  
-    colnames(site_ics) <- sub(paste0("_site", i, "$"), "", colnames(site_ics))
-    colnames(site_ics)
-    site <- site_ids[i]
-    settings <- update_dirs(settings, itr, site)
-    
-    settings$run <- settings$run[[i]]
-    #settings$run
-    run_ids <- get_configs(gen_pars, settings)
-    run_ids
-    tryCatch(PEcAn.workflow::start_model_runs(settings, write = FALSE),
-             error = function(e) message("Skipping model run: ", e$message))
-    y_site <- obs_op(run_ids, settings)
-    y_list[[paste0("site_", i)]] <- y_site
-    settings <- PEcAn.settings::read.settings(pecan_settings_path)
-    settings$outdir <- file.path(base_dir, paste0("sobol_out"))
-  }
-  return(y_list)
+ensemble.samples$temperate.deciduous.HPDA <-U
+all.param.samples <- list(
+  trait.samples = trait.samples,
+  ensemble.samples = ensemble.samples ,
+  sa.samples = sa.samples,
+  runs.samples = runs.samples
+  # env.samples = samples$env.samples  # Uncomment if needed
+)
+
+
+#running the site configs 
+
+#check to see if there are posterior.files tags under pft
+posterior.files <-   settings$pfts %>%
+  purrr::map_chr("posterior.files", .default = NA_character_)
+
+PEcAn.workflow::run.write.configs(
+                                  settings = settings,
+                                  write = isTRUE(settings$database$bety$write), # treat null as FALSE
+                                  posterior.files = posterior.files,
+                                  overwrite = TRUE ,
+                                  input_design = input_design,
+                                  all.param.samples = all.param.samples 
+                                 )
+
+
+
+
+#running the model 
+PEcAn.workflow::runModule_start_model_runs(settings, stop.on.error = stop_on_error)
+ 
+
+#reading output 
+
+runs_file <- file.path(settings$outdir, "runs.txt")
+if (file.exists(runs_file)) {
+  run_ids <- readLines(runs_file)  # Your 50 IDs
+} else {
+  stop("runs.txt not found - check settings$outdir")
 }
 
-obs_op <- function(run_ids, settings) {
-  run_ids <- readLines(file.path(settings$rundir, "runs.txt"))
-  output_vars <- c("time", "NEE", "LAI", "GPP", "TotSoilCarb", "AbvGrndWood", 
-                   "leaf_carbon_content", "fine_root_carbon_content", "AGB", 
-                   "coarse_root_carbon_content")
-  output_list <- list()
-  for (run_id in run_ids) {
-    run_id_path <- file.path(settings$modeloutdir, run_id)
-    model_out <- PEcAn.utils::read.output(run_id, outdir = run_id_path, variables = output_vars, dataframe = TRUE)
-    model_dt <- as.data.table(model_out)
-    model_dt[, run_id := run_id]
-    output_list[[run_id]] <- model_dt
-  }
-  model_output <- rbindlist(output_list, use.names = TRUE)
-  fwrite(model_output, model_output_file)
-  return(model_output)
-}
-
-get_configs <- function(gen_pars , settings) {
-  model_write_config <- paste("write.config.", settings$model$type, sep = "")
-  run_ids <- paste0("ens_", 1:nrow(gen_pars))
-  for (i in seq_along(run_ids)) {
-    i=1
-    run_id <- run_ids[i]
-    dir.create(file.path(settings$rundir, run_id), recursive = TRUE)
-    dir.create(file.path(settings$modeloutdir, run_id), recursive = TRUE)
-    par_ens <- list(as.data.frame.list(gen_pars[i, ]))
-    par_ens
-    
-    defaults = settings$pfts
-    defaults
-    do.call(model_write_config, list(defaults = defaults, trait.values = par_ens,
-                                     settings = settings, run.id = run_id))
-    cat(run_id, file = file.path(settings$rundir, "runs.txt"), sep = "\n", append = (i != 1L))
-  }
-  return(run_ids)
-}
-
-update_dirs <- function(settings, itr, site_id) {
-  sub_dir <- paste0("itr_", itr, "/", site_id)
-  settings$outdir <- file.path(settings$outdir, sub_dir)
-  settings$host$rundir <- settings$rundir <- file.path(settings$outdir, "run")
-  settings$host$outdir <- settings$modeloutdir <- file.path(settings$outdir, "out")
-  dir.create(settings$rundir, recursive = TRUE)
-  dir.create(settings$modeloutdir, recursive = TRUE)
-  return(settings)
+# Loop to read outputs for each run
+all_model_out <- list()
+for (i in run_ids) {
+  # Correct run-specific outdir 
+  run_specific_outdir <- file.path(settings$outdir, i)  
+  
+  # Read output (add variables/start.year/end.year if needed)
+  model_out <- read.output(runid = i, 
+                           outdir = run_specific_outdir)
+                           
+  all_model_out[[i]] <- model_out
 }
 
 
-fwd_mul(U)
-
-# ------------------------------------------------------------------------------
-# compute Sobol indices
-# ------------------------------------------------------------------------------
-df <- fread(model_output_file)
-df[, `:=`(year = year(posix), month = month(posix))]
-june_dt <- df[month == 6]
-avg_dt <- june_dt[, lapply(.SD, mean, na.rm = TRUE), by = run_id, .SDcols = 3:12]
-
-# Y <- avg_dt$NEE
-# tell(sobol_obj, Y)
-# write.csv(sobol_obj$T, file.path(output_path, "sobol_T_indices_NEE.csv"))
-output_vars <- names(avg_dt)[2:11]  # Skip "run_id"
-
-sobol_T_matrix <- matrix(NA, nrow = ncol(X1), ncol = length(output_vars))
-rownames(sobol_T_matrix) <- colnames(X1)
-colnames(sobol_T_matrix) <- output_vars
-
-for (i in seq_along(output_vars)) {
-  y <- avg_dt[[output_vars[i]]]  
-  sobol_obj <- soboljansen(model = NULL, X1 = X1, X2 = X2)
-  sobol_obj <- tell(sobol_obj, y)
-  sobol_T_matrix[, i] <- sobol_obj$T$original
-}
-
-write.csv(sobol_T_matrix, "/projectnb/dietzelab/bthomas/sobol/sobol_totalInd.csv")
 
 
 
@@ -289,51 +219,19 @@ write.csv(sobol_T_matrix, "/projectnb/dietzelab/bthomas/sobol/sobol_totalInd.csv
 
 
 
+#conducting the sobol
 
+y <- sapply(run_ids, function(rid) {
+  out_list <- all_model_out[[rid]]
+  mean(out_list$GPP, na.rm = TRUE)  # Or other summary
+})
 
+# Check lengths match
+print(length(y))  # Should be 50
+print(nrow(sobol_obj$X))  # Should be 50
 
+# Compute indices
+tell(sobol_obj, y)
 
-
-
-
-
-
-
-
-
-
-
-fwd_mul <- function(U, itr = 1) {
-  gen_pars <- U[, !grepl("_site", colnames(U)), drop = FALSE]
-  y_list <- list()
-  itr = 1
-  for (i in seq_along(site_ids)) {
-    i=1
-    # Create a deep copy of settings to avoid structure issues
-    temp_settings <- settings  # Simple copy; use dget/dput if needed for deep copy
-    
-    site <- site_ids[i]
-    temp_settings <- update_dirs(temp_settings, itr, site)
-    
-    # Assign run config without overwriting structure
-    if (is.list(temp_settings$run) && length(temp_settings$run) >= i) {
-      temp_settings$run <- temp_settings$run[[i]]  # This should now be safe
-    } else {
-      message(paste("Invalid run structure for site", i, "- skipping"))
-      next
-    }
-    
-    # Fix multiple paths (as before)
-
-    run_ids <- get_configs(gen_pars, temp_settings)  # Use temp_settings
-    
-    tryCatch({
-      PEcAn.workflow::start_model_runs(temp_settings, write = FALSE)
-      y_site <- obs_op(run_ids, temp_settings)
-      y_list[[paste0("site_", i)]] <- y_site
-    }, error = function(e) {
-      message("Error in model run for site ", site, ": ", e$message)
-    })
-  }
-  return(y_list)
-}
+# View/plot results
+print(sobol_obj)
