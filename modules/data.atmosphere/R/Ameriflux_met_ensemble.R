@@ -63,8 +63,8 @@ AmeriFlux_met_ensemble <- function(site_id,
                                    ...) {
   
   # input validation
-  if (!grepl("@", useremail)) {
-    PEcAn.logger::logger.severe("useremail must contain '@' for AmeriFlux authentication")
+  if (!grepl("@", ameriflux_useremail)) {
+    PEcAn.logger::logger.severe("ameriflux_useremail must contain '@' for AmeriFlux authentication")
   }
   
   if (!dir.exists(outfolder)) {
@@ -82,7 +82,7 @@ AmeriFlux_met_ensemble <- function(site_id,
   )
   
   if (!is.null(dirs)) {
-    dirs <- modifyList(default_paths, dirs)
+    dirs <- utils::modifyList(default_paths, dirs)
   } else {
     dirs <- default_paths
   }
@@ -126,7 +126,7 @@ AmeriFlux_met_ensemble <- function(site_id,
     if(verbose) {
       PEcAn.logger::logger.info("Extracting state variables")
     }
-    flux_data <- read.csv(
+    flux_data <- utils::read.csv(
       csv_file,
       skip = 2,
       na.strings = c("-9999", "NA"),
@@ -150,7 +150,7 @@ AmeriFlux_met_ensemble <- function(site_id,
     })))
     state_vars <- flux_data[, selected_cols, drop = FALSE]
     extracted_file <- file.path(dirs$amf_extracted, paste0(site_id, "_state_drivers.csv"))
-    write.csv(
+    utils::write.csv(
       state_vars,
       extracted_file,
       row.names = FALSE,
