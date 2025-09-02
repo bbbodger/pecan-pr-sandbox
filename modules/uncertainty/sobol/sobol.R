@@ -61,10 +61,11 @@ if (args$continue && file.exists(status_file)) {
 
 
 
-ensemble_size <- settings$ensemble$size
-input_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings,ensemble_size=ensemble_size)
-input_design
-
+ensemble_size <- 4
+Xinput_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings,ensemble_size=ensemble_size, sobol=TRUE)
+input_design <- Xinput_design$input_design
+all.param.samples <- Xinput_design$all.param.samples
+sobol_obj <- Xinput_design$sobol_obj 
 
 
 #convverting input indices to input
@@ -72,61 +73,60 @@ input_design
 
 
 # Sample inputs 
-ipsamples <- list()
+#ipsamples <- list()
 
-input_tags <- names(settings$run$inputs)
-input_tags
-for (input_tag in input_tags) {
-  if (input_tag %in% colnames(input_design)) {
-    input_paths <- settings$run$inputs[[input_tag]]$path  # List of all possible paths
-    if (!is.list(input_paths) || length(input_paths) < max(input_design[[input_tag]])) {
-      stop(paste("Not enough paths for", input_tag, "- max index:", max(input_design[[input_tag]]), "but only", length(input_paths), "available"))
-    }
-    input_indices <- input_design[[input_tag]]
-    ipsamples[[input_tag]] <- list(
-      ipsamples = lapply(input_indices, function(idx) input_paths[[idx]])  # Select paths by index
-    )
-  } else {
-    message(paste("No column for", input_tag, "in input_design - skipping sampling"))
-  }
-}
+#input_tags <- names(settings$run$inputs)
+#input_tags
+#for (input_tag in input_tags) {
+#  if (input_tag %in% colnames(input_design)) {
+#    input_paths <- settings$run$inputs[[input_tag]]$path  # List of all possible paths
+#    if (!is.list(input_paths) || length(input_paths) < max(input_design[[input_tag]])) {
+#      stop(paste("Not enough paths for", input_tag, "- max index:", max(input_design[[input_tag]]), "but only", length(input_paths), "available"))
+#    }
+#    input_indices <- input_design[[input_tag]]
+#    ipsamples[[input_tag]] <- list(
+#      ipsamples = lapply(input_indices, function(idx) input_paths[[idx]])  # Select paths by index
+#    )
+#  } else {
+#    message(paste("No column for", input_tag, "in input_design - skipping sampling"))
+#  }
+#}
 #input file path to inputs
-
-
+#
+#
 
 
 # extracting parameter 
 
 
-samples.file <- file.path(settings$outdir, "samples.Rdata")
-if (file.exists(samples.file)) {
-  samples <- new.env()
-  load(samples.file, envir = samples) ## loads ensemble.samples, trait.samples, sa.samples, runs.samples, env.samples
-  trait.samples <- samples$trait.samples
-  
-  
-  trait_sample_indices <- input_design[["param"]]
-  ensemble.samples <- list()
-  for (pft in names(trait.samples)) {
-    pft_traits <- trait.samples[[pft]]
-    ensemble.samples[[pft]] <- as.data.frame(
-      lapply(
-        names(pft_traits),
-        function(trait) pft_traits[[trait]][trait_sample_indices]
-      )
-    )
-    names(ensemble.samples[[pft]]) <- names(pft_traits)
-  }
-  sa.samples <- samples$sa.samples
-  runs.samples <- samples$runs.samples
+#samples.file <- file.path(settings$outdir, "samples.Rdata")
+#if (file.exists(samples.file)) {
+#  samples <- new.env()
+#  load(samples.file, envir = samples) ## loads ensemble.samples, trait.samples, sa.samples, runs.samples, env.samples
+#  trait.samples <- samples$trait.samples
+ 
+#  trait_sample_indices <- input_design[["param"]]
+#  ensemble.samples <- list()
+#  for (pft in names(trait.samples)) {
+#    pft_traits <- trait.samples[[pft]]
+#    ensemble.samples[[pft]] <- as.data.frame(
+#      lapply(
+#        names(pft_traits),
+#        function(trait) pft_traits[[trait]][trait_sample_indices]
+#      )
+#    )
+#    names(ensemble.samples[[pft]]) <- names(pft_traits)
+#  }
+#  sa.samples <- samples$sa.samples
+#  runs.samples <- samples$runs.samples
   ## env.samples <- samples$env.samples
   
-} else {
-  PEcAn.logger::logger.error(samples.file, "not found, this file is required by the run.write.configs function")
-}
+#} else {
+#  PEcAn.logger::logger.error(samples.file, "not found, this file is required by the run.write.configs function")
+#}
 
-ensemble.samples
-all_params <- ensemble.samples$temperate.deciduous.HPDA
+#ensemble.samples
+#all_params <- ensemble.samples$temperate.deciduous.HPDA
 
 
 
@@ -148,18 +148,18 @@ all_params <- ensemble.samples$temperate.deciduous.HPDA
 
 
 
-X1 <- all_params[1:25, ]
-X2 <- all_params[26:50, ]
-sobol_obj <- soboljansen(model = NULL, X1 = X1, X2 = X2)
-U <- sobol_obj$X
-ensemble.samples$temperate.deciduous.HPDA <-U
-all.param.samples <- list(
-  trait.samples = trait.samples,
-  ensemble.samples = ensemble.samples ,
-  sa.samples = sa.samples,
-  runs.samples = runs.samples
+#X1 <- all_params[1:25, ]
+#X2 <- all_params[26:50, ]
+#sobol_obj <- soboljansen(model = NULL, X1 = X1, X2 = X2)
+#U <- sobol_obj$X
+#ensemble.samples$temperate.deciduous.HPDA <-U
+#all.param.samples <- list(
+#  trait.samples = trait.samples,
+#  ensemble.samples = ensemble.samples ,
+#  sa.samples = sa.samples,
+#  runs.samples = runs.samples
   # env.samples = samples$env.samples  # Uncomment if needed
-)
+#)
 
 
 #running the site configs 
