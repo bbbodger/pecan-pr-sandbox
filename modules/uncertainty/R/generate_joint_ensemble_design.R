@@ -3,6 +3,7 @@
 #' all sites in a multi-site run. This function generates sample indices that are shared across sites to ensure consistent parameter sampling.
 #'
 ##' @param settings A PEcAn settings object containing ensemble configuration
+##' @param sobol for activating sobol
 ##' @param ensemble_size Integer specifying the number of ensemble members
 ##' @return  A list containing ensemble samples and indices
 ##' 
@@ -10,7 +11,7 @@
 
 generate_joint_ensemble_design <- function(settings, ensemble_size, sobol = FALSE) {
   
-  if(sobol) ensemble_size=ensemble_size*2
+  if(sobol) ensemble_size=as.numeric(ensemble_size)*2
   
   
   ens.sample.method <- settings$ensemble$samplingspace$parameters$method
@@ -30,6 +31,7 @@ generate_joint_ensemble_design <- function(settings, ensemble_size, sobol = FALS
     
     input_result <- PEcAn.uncertainty::input.ens.gen(
       settings = settings,
+      ensemble_size = ensemble_size,
       input = input_tag,
       method = samp.ordered[[i]]$method,
       parent_ids = parent_ids
@@ -40,7 +42,7 @@ generate_joint_ensemble_design <- function(settings, ensemble_size, sobol = FALS
   }
   
   # Sample parameters
-  PEcAn.uncertainty::get.parameter.samples(settings, posterior.files, ens.sample.method)
+  PEcAn.uncertainty::get.parameter.samples(settings,ensemble.size = ensemble_size, posterior.files, ens.sample.method)
   
   # Load samples from file
   samples.file <- file.path(settings$outdir, "samples.Rdata")
@@ -61,8 +63,17 @@ generate_joint_ensemble_design <- function(settings, ensemble_size, sobol = FALS
   
   if(sobol){
     half<-floor(ensemble_size / 2)
-    X1 = data.frame(design_matrix$met = 1:half, design_matrix$params = 1:half, design_matrix$ic = 1:half)
-    X2 = data.frame(design_matrix$met = (half + 1):ensemble_size, design_matrix$params = (half + 1):ensemble_size, design_matrix$ic = (half_size + 1):ensemble_size)
+    X1 <- data.frame(
+      met = design_matrix$met[1:half],
+      params = design_matrix$params[1:half],
+      ic = design_matrix$ic[1:half]
+    )
+    
+    X2 <- data.frame(
+      met = design_matrix$met[(half + 1):ensemble_size],
+      params = design_matrix$params[(half + 1):ensemble_size],
+      ic = design_matrix$ic[(half + 1):ensemble_size]
+    )
     sobol_obj <- soboljansen(model = NULL, X1 = X1, X2 = X2)
     U <- sobol_obj$X
     return(U)

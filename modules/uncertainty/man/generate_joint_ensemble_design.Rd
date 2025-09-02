@@ -13,7 +13,7 @@ generate_joint_ensemble_design(settings, ensemble_size, sobol = FALSE)
 
 \item{ensemble_size}{Integer specifying the number of ensemble members}
 
-\item{sobol}{for generating inputs for sobol}
+\item{sobol}{for activating sobol}
 }
 \value{
 A list containing ensemble samples and indices
