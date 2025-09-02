@@ -163,21 +163,21 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
   # Two-step aggregation:
   # (1) Sum fragments within horizons, (2) Component area-weighting by mapunit
   soilprop.weighted <- soilprop %>%
-    dplyr::group_by(cokey, hzdept_r, hzdepb_r) %>%
+    dplyr::group_by(.data$cokey, .data$hzdept_r, .data$hzdepb_r) %>%
     # Each horizon may have multiple rows from different fragment size classes
     # Sum fragments across size classes and remove duplicate horizon data
-    dplyr::mutate(fragvol_r = min(sum(fragvol_r, na.rm = TRUE), 100)) %>%
+    dplyr::mutate(fragvol_r = min(sum(.data$fragvol_r, na.rm = TRUE), 100)) %>%
     dplyr::distinct() %>% # Remove duplicate rows created by multiple fragment size classes
     dplyr::ungroup() %>%
     # Component area-weighted aggregation by mapunit and horizon depth
-    dplyr::group_by(mukey, hzdept_r, hzdepb_r) %>%
+    dplyr::group_by(.data$mukey, .data$hzdept_r, .data$hzdepb_r) %>%
     dplyr::summarise(
-      sandtotal_r = weighted.mean(sandtotal_r, comppct_r, na.rm = TRUE),
-      silttotal_r = weighted.mean(silttotal_r, comppct_r, na.rm = TRUE),
-      claytotal_r = weighted.mean(claytotal_r, comppct_r, na.rm = TRUE),
-      om_r = weighted.mean(om_r, comppct_r, na.rm = TRUE),
-      dbthirdbar_r = weighted.mean(dbthirdbar_r, comppct_r, na.rm = TRUE),
-      fragvol_r = weighted.mean(fragvol_r, comppct_r, na.rm = TRUE),
+      sandtotal_r = stats::weighted.mean(.data$sandtotal_r, .data$comppct_r, na.rm = TRUE),
+      silttotal_r = stats::weighted.mean(.data$silttotal_r, .data$comppct_r, na.rm = TRUE),
+      claytotal_r = stats::weighted.mean(.data$claytotal_r, .data$comppct_r, na.rm = TRUE),
+      om_r = stats::weighted.mean(.data$om_r, .data$comppct_r, na.rm = TRUE),
+      dbthirdbar_r = stats::weighted.mean(.data$dbthirdbar_r, .data$comppct_r, na.rm = TRUE),
+      fragvol_r = stats::weighted.mean(.data$fragvol_r, .data$comppct_r, na.rm = TRUE),
       .groups = "drop"
     )
   
@@ -196,12 +196,12 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
     dplyr::mutate(
       dplyr::across(c(dplyr::starts_with("fraction_of"), "coarse_fragment_pct"), 
                     ~ . / 100),
-      horizon_thickness_cm = soil_depth_bottom - soil_depth,
+      horizon_thickness_cm = .data$soil_depth_bottom - .data$soil_depth,
       soil_organic_carbon_stock = PEcAn.data.land::soc2ocs(
-        soc_percent = PEcAn.data.land::om2soc(organic_matter_pct),
-        bulk_density = bulk_density,
-        thickness = horizon_thickness_cm,
-        coarse_fraction = coarse_fragment_pct
+        soc_percent = PEcAn.data.land::om2soc(.data$organic_matter_pct),
+        bulk_density = .data$bulk_density,
+        thickness = .data$horizon_thickness_cm,
+        coarse_fraction = .data$coarse_fragment_pct
       )
     ) %>%
     dplyr::filter(stats::complete.cases(.))
@@ -308,8 +308,8 @@ extract_soil_gssurgo <- function(outdir, lat, lon, size=1, grid_size=3, grid_spa
       mukey = names(mukey_counts),
       Area = as.numeric(mukey_counts) / sum(mukey_counts)
     ) %>%
-      dplyr::filter(mukey %in% unique(simulated.soil.props$mukey)) %>%
-      dplyr::mutate(Area = Area / sum(Area, na.rm = TRUE))
+      dplyr::filter(.data$mukey %in% unique(simulated.soil.props$mukey)) %>%
+      dplyr::mutate(Area = .data$Area / sum(.data$Area, na.rm = TRUE))
     #--- Mixing the depths
     soil.profiles<-simulated.soil.props %>% 
       split(.$mukey) %>%   
