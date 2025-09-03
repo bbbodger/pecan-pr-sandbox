@@ -6,7 +6,7 @@ library("PEcAn.all")
 #' @param settings a PEcAn Settings or MultiSettings object
 #' @export
 sobol_analysis <- function( settings ) {
- 
+  
   input_design <- PEcAn.uncertainty::generate_joint_ensemble_design(settings=settings,ensemble_size=ensemble_size, sobol = TRUE)
   
   
