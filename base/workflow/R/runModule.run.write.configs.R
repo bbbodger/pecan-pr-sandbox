@@ -40,6 +40,7 @@ runModule.run.write.configs <- function(settings, overwrite = TRUE, input_design
     
     return(PEcAn.workflow::run.write.configs(
       settings = settings,
+      ensemble.size = ensemble_size,
       write = isTRUE(settings$database$bety$write), # treat null as FALSE
       posterior.files = posterior.files,
       overwrite = overwrite,
