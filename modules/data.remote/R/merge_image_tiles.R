@@ -7,9 +7,9 @@
 #' @param in.path character: physical path to the folder that contains all the original image tiles.
 #' @param out.path  character: physical path to the folder that contains converted and merged images.
 #' @param band.name character: band name of the image. Default is NULL.
-#' @param just.band.name boolean: if we just want the band names of the image file. Default is TRUE.
-#' @param keep.files boolean: if we want to keep the image tiles at the end.
-#' @param ignore.conversion boolean: if we want to ignore the image conversion.
+#' @param just.band.name logical: if we just want the band names of the image file. Default is TRUE.
+#' @param keep.files logical: if we want to keep the image tiles at the end.
+#' @param skip.conversion logical: if we want to ignore the image conversion.
 #' Note that this is a experimental feature, which only works when images are all in the GeoTIFF format.
 #' @param image.settings list: settings used during exporting merged image.
 #' Such as image coordinate system (crs), dimension, extents (ext), and average function (fun).
@@ -27,7 +27,7 @@ merge_image_tiles <- function(in.path,
                               band.name = NULL,
                               just.band.name = TRUE,
                               keep.files = FALSE, 
-                              ignore.conversion = FALSE,
+                              skip.conversion = FALSE,
                               image.settings = list(crs = "EPSG:4326",
                                                     dimension = NULL,
                                                     ext = NULL,
@@ -42,7 +42,7 @@ merge_image_tiles <- function(in.path,
   PEcAn.logger::logger.info(paste0("Using ", computation$COMPRESS, " compression mode."))
   # Detect if we have the gdalwarp module installed.
   # check shell environments.
-  if ("try-error" %in% class(try(temp <- system("which gdalwarp", intern = T), silent = T))) {
+  if (suppressWarnings(system2("which", "gdalwarp", stdout = FALSE)) != 0) {
     PEcAn.logger::logger.info("The gdalwarp function is not detected in shell command.")
     return(NA)
   }
@@ -60,7 +60,7 @@ merge_image_tiles <- function(in.path,
     return(0)
   }
   # if we want to ignore the image conversion.
-  if (ignore.conversion) {
+  if (skip.conversion) {
     # if we have any file that has format other than .tif or .tiff.
     if (!all(grepl("tif", unique(tools::file_ext(file.paths)), fixed = TRUE))) {
       PEcAn.logger::logger.info("Can't ignore the image conversion. Please make sure all images are in the .tif or .tiff format and try again!")
@@ -127,7 +127,7 @@ merge_image_tiles <- function(in.path,
            gdal.cmd)
   cmd <- gsub("@VRT@", file.path(out.path, "index.vrt"), cmd)
   # if we ignore the conversion, the file should be in the original path.
-  if (ignore.conversion) {
+  if (skip.conversion) {
     cmd <- gsub("@TIF@", file.path(in.path, "*.tif"), cmd)
   } else {
     cmd <- gsub("@TIF@", file.path(out.path, "*.tif"), cmd)
@@ -161,7 +161,7 @@ merge_image_tiles <- function(in.path,
 #' @param outfolder character: physical path to the folder where you want to export the converted image. Default is NULL.
 #' @param band_name character: band name of the image. Default is NULL.
 #' @param tile_id character/numeric: id for differentiate different converted image tiles.
-#' @param just_band_name boolean: if we just want the band names of the image file. Default is TRUE.
+#' @param just_band_name logical: if we just want the band names of the image file. Default is TRUE.
 #' @param target_format character: target image format. Default is .tif.
 #' @export
 #' 
@@ -248,7 +248,7 @@ get_subdatasets <- function(in_path) {
 #' @author Dongchen Zhang
 gdal_translate <- function (from, to) {
   # grab gdal installation path.
-  if ("try-error" %in% class(try(gdal_path <- system("which gdal_translate", intern = TRUE)))) {
+  if (suppressWarnings(system2("which", "gdal_translate", stdout = FALSE)) != 0) {
     PEcAn.logger::logger.info("Please make sure the gdal_translate module is installed correctly!")
     return(0)
   }
