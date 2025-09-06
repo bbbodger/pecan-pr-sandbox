@@ -248,7 +248,7 @@ get_subdatasets <- function(in_path) {
 #' @author Dongchen Zhang
 gdal_translate <- function (from, to) {
   # grab gdal installation path.
-  if (suppressWarnings(system2("which", "gdal_translate", stdout = FALSE)) != 0) {
+  if ("try-error" %in% class(try(gdal_path <- system("which gdal_translate", intern = TRUE)))) {
     PEcAn.logger::logger.info("Please make sure the gdal_translate module is installed correctly!")
     return(0)
   }
