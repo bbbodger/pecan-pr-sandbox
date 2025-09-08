@@ -31,7 +31,7 @@ runModule.run.write.configs <- function(settings, overwrite = TRUE, input_design
       design_result <- PEcAn.uncertainty::generate_joint_ensemble_design( settings = settings, ensemble_size = ensemble_size )
       input_design <- design_result$X
       }
-    
+    ensemble_size <- nrow(input_design)
     
     
     #check to see if there are posterior.files tags under pft
