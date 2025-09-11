@@ -144,12 +144,6 @@ model2netcdf.SIPNET <- function(outdir, sitelat, sitelon, start_date, end_date, 
     sub.sipnet.output <- subset(sipnet_output, sipnet_output$year == y)
     sub.sipnet.output.dims <- dim(sub.sipnet.output)
     dayfrac <- 1 / out_day
-    step <- utils::head(seq(0, 1, by = dayfrac), -1)   ## probably dont want to use
-                                                       ## hard-coded "step" because 
-                                                       ## leap years may not contain 
-                                                       ## all "steps", or
-                                                       ## if model run doesnt start 
-                                                       ## at 00:00:00
     
     # try to determine if DOY is CF compliant (i.e. 0 based index) or not (1 base index)
     # The previous code was assuming the constant pecan_start_doy throughout times.
