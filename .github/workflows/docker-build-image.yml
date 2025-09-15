@@ -52,9 +52,9 @@ jobs:
           echo "image_name=$(echo ${{ inputs.image-name }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           # if pr then actor not repository owner otherwise we can not push to ghcr.io
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "repository=$(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]')"  >> $GITHUB_OUTPUT
+            echo "repository=$(echo ${{ github.actor }}/$(basename ${{ github.repository }}) | tr '[:upper:]' '[:lower:]')"  >> $GITHUB_OUTPUT
           else
-            echo "repository=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+            echo "repository=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           fi
 
       - name: set PARENT_IMAGE only if specified
